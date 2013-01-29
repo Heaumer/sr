@@ -1,0 +1,153 @@
+\documentclass[a4paper]{article}
+
+\usepackage[francais]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[OT1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{subfigure}
+
+\graphicspath{ {./imgs/} }
+
+% shorten margin
+\usepackage[]{fullpage}
+
+\title{Rapport des TDs du cours de Sécurité Réseau par Bruno Martin}
+\author{Sophie Valentin, Mathieu Bivert}
+
+\makeatletter
+\def\thickhrulefill{\leavevmode \leaders \hrule height 1pt\hfill \kern \z@}
+\def\maketitle{
+	\null
+	\thispagestyle{empty}
+	\vskip 1cm
+	\begin{center}
+		\normalfont\large\huge\@author
+	\end{center}
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\hrule height 2pt
+	\par
+	\begin{center}
+				\huge \strut \@title \par
+				\@date
+	\end{center}
+	\hrule height 2pt
+	\par
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\null
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[scale=.5]{polytech.png}
+	\end{figure}
+	\vfil
+	\cleardoublepage
+}
+\makeatother
+
+\begin{document}
+\maketitle
+
+\newpage
+\tableofcontents
+
+\newpage
+
+\section{Topologie}
+\section{Configuration de la passerelle}
+Une passerelle (gateway) est un homme du milieu reliant
+deux réseaux distincts. Dans le cas présent, la machine \textit{passerelle}
+doit faire communiquer les deux réseaux SLAN et LAN Travaux Pratiques.
+
+La passerelle doit être capable de router du traffic:
+\begin{verbatim}
+  (passerelle)# echo 1 > /proc/sys/net/ipv4/ip_forward
+\end{verbatim}
+
+L'IP Masquerade (Network Address Translation) doit être
+activée. Cette fonctionnalité modifie les entêtes IPs du traffic
+passant par \textit{passerelle} afin de rendre invisibles, au niveau IP,
+les machines de LAN Travaux Pratiques depuis l'extérieur.
+
+\begin{verbatim}
+  (passerelle)# iptables -t nat -A POSTROUTING -o eth0 -s 192.168.2.0/24 -j MASQUERADE
+\end{verbatim}
+
+Enfin, syslogd doit être activé afin de logger les activités d'iptables
+
+\begin{verbatim}
+  (passerelle)# apt-get install inetutils-syslogd
+  (passerelle)# edit /etc/syslog.conf # logs dans /var/log/kernel.log
+  (passerelle)# services syslog
+\end{verbatim}
+
+\subsection{Tests}
+On choisit un client, par exemple \textit{client-bsd}, on lui
+retire l'interface réseau connectée à SLAN, et on s'assure que
+la machine est bien connectée sur LAN Travaux Pratiques, et
+qu'elle peut communiquer avec la passerelle. Enfin, on s'assure
+qu'il est possible de contacter le serveur et les Internets.
+
+\begin{verbatim}
+  (client-bsd)# ifconfig em1 down # ou em0
+  (client-bsd)# ifconfig em0      # ou em1
+  (client-bsd)# ping passerelle.cs.sr
+  (client-bsd)# netstat -r 
+  (client-bsd)# ping -c3 google.fr
+\end{verbatim}
+
+On vérifie les logs sur la passerelle:
+\begin{verbatim}
+  (passerelle)# tail -f /var/log/kernel.log
+\end{verbatim}
+
+serveur telnet. mitm depuis backtrack. ssh. nmap
+
+essai ssh avec mitm? :-)
+
+\section{Configuration du serveur web}
+\subsection{Tests}
+
+\section{Configuration serveur (smtp+imaps) et client (gpg) email}
+routage email, topologie
+\subsection{Tests}
+
+\section{Configuration VPN}
+\subsection{Tests}
+
+\section{OpenVAS \& Metasploit}
+
+\end{document}
