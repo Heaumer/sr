@@ -136,13 +136,35 @@ On vérifie les logs sur la passerelle:
 
 serveur telnet. mitm depuis backtrack. ssh. nmap
 
-essai ssh avec mitm? :-)
+essai ssh avec mitm? (normalement il affiche un message du genre
+"SOMEONE MAY BE ON THE CABLE!")
 
 \section{Configuration du serveur web}
 \subsection{Tests}
 
 \section{Configuration serveur (smtp+imaps) et client (gpg) email}
-routage email, topologie
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.5]{emailrouting.png}
+	\caption{\label{emailrouting} Un MUA envoie un email à un MTA, qui
+		le forward jusqu'à un MTA final, qui le transmet à un MDA.
+		Enfin, le MUA du destinataire récupère l'email depuis ce MDA}
+\end{figure}
+
+La figure \ref{emailrouting} donne un exemple simple de routage d'email,
+faisant intervenir $3$ pièces logicielles:
+\begin{description}
+	\item[MTA] Mail Transfer Agent (eg. serveur SMTP), qui route les
+		emails de domaines en domaines jusqu'à arriver à bonne destination;
+	\item[MDA] Mail Delivery Agent (eg. serveur IMAP(s)), qui délivre
+		les emails aux MUAs qui lui demandent;
+	\item[MUA] Mail User Agent c'est le client email, dont le rôle principal
+		est de récupérer les emails depuis un MDA, et d'en envoyer à un MTA;
+\end{description}
+D'autres agents optionnels peuvent venir s'y greffer.
+
+En pratique, on installe et configure postfix sur \textit{passerelle}.
+
 \subsection{Tests}
 
 \section{Configuration VPN}
