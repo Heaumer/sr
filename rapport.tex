@@ -213,11 +213,13 @@ Il faut le lancer ainsi :
   (backtrack)# ettercap -G
 \end{verbatim}
 
-Dans le menu, on clique tout d'abord sur \textit{Sniff} et on sélectionne 
+\begin{enumerate}
+
+\item Dans le menu, on clique tout d'abord sur \textit{Sniff} et on sélectionne 
 \textit{Unified sniffing} avant de choisir l'interface \textit{eth1}
 qui est sur LAN Travaux Pratiques.
 
-Dans le menu \textit{Hosts}, on lance un scan du réseau local puis
+\item Dans le menu \textit{Hosts}, on lance un scan du réseau local puis
 depuis le même menu, on affiche la liste des hôtes.
 
 \begin{figure}[!ht]
@@ -230,12 +232,13 @@ On reconnaît les adresses IP de \textit{passerelle} et
 \textit{client-bsd}. Il suffit donc de spécifier que ce sont
 nos deux cibles avec les boutons \textit{TARGET 1} et \textit{TARGET 2}.
 
-Comme il s'agit d'un réseau commuté, on peut empoisonner les tables
+\item Comme il s'agit d'un réseau commuté, on doit empoisonner les tables
 ARP (\textit{ARP poisoning}) avant de lancer le \textit{sniffing} pour
-récupérer le traffic entre les deux cibles.
+récupérer le trafic entre les deux cibles.
 
-Dans le menu \textit{Mitm}, on sélectionne donc \textit{ARP Poisoning}
-avant de sélectionner dans le menu \textit{Start} le choix \textit{Start Sniffing}.
+Dans le menu \textit{Mitm}, on sélectionne donc \textit{ARP Poisoning}.
+
+\item Enfin, on sélectionne dans le menu \textit{Start} le choix \textit{Start Sniffing}.
 
 La machine \textit{client-bsd} se connecte avec \textit{telnet}.
 
@@ -305,13 +308,13 @@ The key's randomart image is:
 
 Deux fichiers sont alors générés :
 \begin{description}
-	\item[id\_rsa.pub] Clé publique devant être connue du serveur;
-	\item[id\_rsa] Clé privée ne devant pas être dévoilée.
+	\item[id\_rsa.pub]	Clé publique devant être connue du serveur;
+	\item[id\_rsa] 		Clé privée ne devant pas être dévoilée.
 \end{description}
 
 Côté serveur, on doit maintenant ajouter la clef publique sur le
-serveur. Ssh cherche dans le répertoire \textit{\$HOME/.ssh/} les
-fichiers dontle nom commence par \textit{authorized\_keys}. Ceux-ci
+serveur. SSH cherche dans le répertoire \textit{\$HOME/.ssh/} les
+fichiers dont le nom commence par \textit{authorized\_keys}. Ceux-ci
 doivent contenir une clef par ligne.
 
 On transmet ainsi la clé publique sur le serveur, par exemple avec
@@ -327,9 +330,9 @@ On prend soin d'ajuster les permissions du fichier :
  
 Enfin, on s'assure que l'authentification par clefs marche bien, et
 qu'il est difficile de récupérer les informations sur la connexion
-avec une attaque mitm.
+avec une attaque MITM.
 
-La configuration du serveur ssh se fait dans le fichier \textit{/etc/ssh/sshd\_config}.
+La configuration du serveur SSH se fait dans le fichier \textit{/etc/ssh/sshd\_config}.
 Il peut-être intéressant d'y faire les réglages suivants:
 \begin{description}
 	\item[X11Forwarding no] pour réduire le traffic X$11$, et donc réduire les
@@ -340,8 +343,8 @@ Il peut-être intéressant d'y faire les réglages suivants:
 	tentatives de connexions lancées par des bots.
 \end{description}
 
-\section{Configuration d'un serveur web et d'openssl}
-\subsection{Installation d'Openssl}
+\section{Configuration d'un serveur web et d'OpenSSL}
+\subsection{Installation d'OpenSSL}
 \begin{verbatim}
   (passerelle)# ./configure --prefix=/usr/local && make && make install
   (passerelle)# cat >> /etc/ld.so.conf
@@ -350,9 +353,9 @@ Il peut-être intéressant d'y faire les réglages suivants:
   (passerelle)# ldconfig
 \end{verbatim}
 
-\subsection{Installation d'apache2}
+\subsection{Installation d'Apache2}
 Après avoir récupéré les sources sur le site (et vérifié le hash du fichier), on configure
-apache avec le support d'openssl
+Apache avec le support d'OpenSSL
 \begin{verbatim}
   (passerelle)# ./configure --option-du-chemin-ssl=/usr/local/openssl --prefix=/usr/local/apache2
   (passerelle)# /usr/local/bin/apache2/bin/apachectl start
