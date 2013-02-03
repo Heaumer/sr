@@ -280,7 +280,7 @@ Afin d'éviter d'avoir à entrer le mot de passe à chaque connexion, on peut
 utiliser un système à base de clefs. On génère un couple clef privée/publique
 de type RSA sur le client:
 \begin{verbatim}
-(client-bsd)$ ssh-keygen
+(client-bsd)$ ssh-keygen -t rsa
 Generating public/private rsa key pair.
 Enter file in which to save the key (/home/cssr/.ssh/id_rsa): 
 Enter passphrase (empty for no passphrase): 
@@ -340,7 +340,27 @@ Il peut-être intéressant d'y faire les réglages suivants:
 	tentatives de connexions lancées par des bots.
 \end{description}
 
-\section{Configuration du serveur web}
+\section{Configuration d'un serveur web et d'openssl}
+\subsection{Installation d'Openssl}
+\begin{verbatim}
+  (passerelle)# ./configure --prefix=/usr/local && make && make install
+  (passerelle)# cat >> /etc/ld.so.conf
+  /usr/local/openssl/lib
+  ^D
+  (passerelle)# ldconfig
+\end{verbatim}
+
+\subsection{Installation d'apache2}
+Après avoir récupéré les sources sur le site (et vérifié le hash du fichier), on configure
+apache avec le support d'openssl
+\begin{verbatim}
+  (passerelle)# ./configure --option-du-chemin-ssl=/usr/local/openssl --prefix=/usr/local/apache2
+  (passerelle)# /usr/local/bin/apache2/bin/apachectl start
+  (passerelle)# wget http://localhost -O /dev/stdout && echo OK
+\end{verbatim}
+
+\subsection{Passage à https}
+
 \subsection{Tests}
 
 \section{Configuration serveur (smtp+imaps) et client (gpg) email}
