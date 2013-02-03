@@ -15,7 +15,7 @@
 \usepackage[]{fullpage}
 
 \title{Configuration et sécurisation de services réseaux}
-\author{Mathieu BIVERT, Sophie VALENTIN}
+\author{Sophie VALENTIN, Mathieu BIVERT}
 
 \makeatletter
 \def\thickhrulefill{\leavevmode \leaders \hrule height 1pt\hfill \kern \z@}
@@ -190,14 +190,17 @@ de connexion, il lance le processus serveur adéquat.
 
 Pour ce faire, on installe le serveur telnet.
 \begin{verbatim}
-  (passerelle)# sudo apt-get install telnetd
+  (passerelle)# apt-get install telnetd
 \end{verbatim}
 
 Puis, on modifie le fichier \textit{/etc/inetd.conf} pour y
 ajouter le service \textit{telnet} dans la section des services
 standard.
 
-RETROUVER LE FICHIER SUR LA VM POUR AVOIR LA LIGNE EXACTE
+\begin{verbatim}
+  (passerelle)# grep '^telnet' /etc/inetd.conf
+  telnet stream tcp nowait root /usr/sbin/tcpd in.telnetd
+\end{verbatim}
 
 \vspace{1\baselineskip}
 On va maintenant tenter d'intercepter le couple \textit{login/passwd}
@@ -227,8 +230,9 @@ On reconnaît les adresses IP de \textit{passerelle} et
 \textit{client-bsd}. Il suffit donc de spécifier que ce sont
 nos deux cibles avec les boutons \textit{TARGET 1} et \textit{TARGET 2}.
 
-Comme il s'agit d'un réseau commuté, on doit empoisonner les tables
-ARP (\textit{ARP poisoning}) avant de lancer le \textit{sniffing}.
+Comme il s'agit d'un réseau commuté, on peut empoisonner les tables
+ARP (\textit{ARP poisoning}) avant de lancer le \textit{sniffing} pour
+récupérer le traffic entre les deux cibles.
 
 Dans le menu \textit{Mitm}, on sélectionne donc \textit{ARP Poisoning}
 avant de sélectionner dans le menu \textit{Start} le choix \textit{Start Sniffing}.
@@ -249,6 +253,57 @@ Et on constate qu'il est extrêmement facile d'obtenir les informations suivante
 	\caption{\label{hosts} Couple en clair}
 \end{figure}
  
+\subsection{Serveur ssh}
+SSH (Secure SHell) joue un rôle similaire à telnet, mais contrairement à ce
+dernier, il intègre des mécanismes de sécurité, comme l'encryption des
+communications.
+
+On installe puis démarre un serveur ssh sur la plateforme:
+\begin{verbatim}
+  (passerelle)# apt-get install openssh-server
+  (passerelle)# service ssh start
+\end{verbatim}
+
+On teste une connexion avec mot de passe.
+
+Afin d'éviter d'avoir à tapper le mot de passe à chaque connexion, on peut
+utiliser un système à base de clefs. On génère un couple clef privée/publique
+de type RSA sur le client:
+\begin{verbatim}
+(client-bsd)$ ssh-keygen
+Generating public/private rsa key pair.
+Enter file in which to save the key (/home/cssr/.ssh/id_rsa): 
+Enter passphrase (empty for no passphrase): 
+Enter same passphrase again: 
+Your identification has been saved in /home/cssr/.ssh/id_rsa
+Your public key has been saved in /home/cssr/.ssh/id_rsa
+The key fingerprint is:
+f4:3e:54:9f:df:eb:72:cc:7a:da:29:a5:79:58:0c:44 cssr@client-bsd
+The key's randomart image is:
++--[ RSA 2048]----+
+|            .E   |
+|             .   |
+|        .   o    |
+|       . . . o . |
+|        S o   =  |
+|         o     =.|
+|          o   O o|
+|           . *.*o|
+|             oX= |
++-----------------+
+\end{verbatim}
+
+Puis on ajoute la clef publique sur \textit{passerelle} dans la liste
+des clefs autorisées:
+
+\begin{verbatim}
+(passerelle)$ cat >> $HOME/.ssh/authorized_keys
+<contenu de cssr@client-bsd:/home/cssr/.ssh/id_rsa.pub>
+\end{verbatim}
+
+Enfin, on s'assure que l'authentification par clefs marche bien, et
+qu'il est difficile de récupérer les informations sur la connexion
+avec une attaque mitm.
 
 \section{Configuration du serveur web}
 \subsection{Tests}
