@@ -178,7 +178,7 @@ Expliquer comment mettre en place TCP Wrapper avec Telnet mais pas sécurisé.
 essai ssh avec mitm? (normalement il affiche un message du genre
 "SOMEONE MAY BE ON THE CABLE!")
 
-\subsection{Serveur Telnet et attaques de snifing}
+\subsection{Serveur Telnet et attaques de \textit{sniffing}}
 
 On commence par installer un serveur \textit{telnet} afin d'offrir
 un premier accès distant à la machine \textit{passerelle}.
@@ -222,7 +222,7 @@ depuis le même menu, on affiche la liste des hôtes.
 
 \begin{figure}[!ht]
 	\centering
-	\includegraphics[scale=.5]{Hosts.PNG}
+	\includegraphics[scale=.4]{Hosts.PNG}
 	\caption{\label{hosts} Hôtes détectés par le scan}
 \end{figure}
 
@@ -245,15 +245,19 @@ La machine \textit{client-bsd} se connecte avec \textit{telnet}.
 	\caption{\label{hosts} Connexion à \textit{passerelle}}
 \end{figure}
 
-Et on constate qu'il est extrêmement facile d'obtenir les informations suivantes :
+Et on constate qu'il est extrêmement facile d'obtenir le couple \textit{login/password} en clair:
 
 \begin{figure}[!ht]
 	\centering
-	\includegraphics[scale=.5]{Passwd.PNG}
+	\includegraphics[scale=.5]{Telnet_passwd.png}
 	\caption{\label{hosts} Couple en clair}
 \end{figure}
+
+On ne veut donc pas proposer un service d'accès à distance non sécurisé, c'est-à-dire
+basé sur des communications transmises en clair sur le réseau. 
+
  
-\subsection{Serveur ssh}
+\subsection{Serveur SSH  et optimisations}
 SSH (Secure SHell) joue un rôle similaire à telnet, mais contrairement à ce
 dernier, il intègre des mécanismes de sécurité, comme l'encryption des
 communications.
@@ -264,9 +268,15 @@ On installe puis démarre un serveur ssh sur la plateforme:
   (passerelle)# service ssh start
 \end{verbatim}
 
-On teste une connexion avec mot de passe.
+On teste une connexion avec mot de passe (l'option \textit{-v} est
+utilisé pour montrer la différence avec une connexion à base de
+clefs, voir plus bas)
+\begin{verbatim}
+  (client-bsd)$ ssh -v cssr@passerelle.cs.sr
+  <METTRE L'OUTPUT ICI>
+\end{verbatim}
 
-Afin d'éviter d'avoir à tapper le mot de passe à chaque connexion, on peut
+Afin d'éviter d'avoir à entrer le mot de passe à chaque connexion, on peut
 utiliser un système à base de clefs. On génère un couple clef privée/publique
 de type RSA sur le client:
 \begin{verbatim}
@@ -293,13 +303,30 @@ The key's randomart image is:
 +-----------------+
 \end{verbatim}
 
-Puis on ajoute la clef publique sur \textit{passerelle} dans la liste
-des clefs autorisées:
+Deux fichiers sont alors générés :
+\begin{description}
+	\item[id\_rsa.pub] Clé publique devant être connue du serveur;
+	\item[id\_rsa] Clé privée ne devant pas être dévoilée.
+\end{description}
 
+Côté serveur, on doit maintenant ajouter la clef publique sur le
+serveur. Ssh cherche dans le répertoire \textit{\$HOME/.ssh/} les
+fichiers dontle nom commence par \textit{authorized\_keys}. Ceux-ci
+doivent contenir une clef par ligne.
+
+On transmet ainsi la clé publique sur le serveur, par exemple avec
+\textit{scp}:
 \begin{verbatim}
-(passerelle)$ cat >> $HOME/.ssh/authorized_keys
-<contenu de cssr@client-bsd:/home/cssr/.ssh/id_rsa.pub>
+  (client-bsd)$ scp .ssh/id_rsa.pub cssr@passerelle.cs.sr:~/.ssh/authorized_keys2
 \end{verbatim}
+
+On prend soin d'ajuster les permissions du fichier :
+\begin{verbatim}
+  (passerelle)# chmod 700 authorized_keys2
+\end{verbatim}
+ 
+
+
 
 Enfin, on s'assure que l'authentification par clefs marche bien, et
 qu'il est difficile de récupérer les informations sur la connexion
