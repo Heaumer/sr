@@ -178,6 +178,78 @@ Expliquer comment mettre en place TCP Wrapper avec Telnet mais pas sécurisé.
 essai ssh avec mitm? (normalement il affiche un message du genre
 "SOMEONE MAY BE ON THE CABLE!")
 
+\subsection{Serveur Telnet et attaques de snifing}
+
+On commence par installer un serveur \textit{telnet} afin d'offrir
+un premier accès distant à la machine \textit{passerelle}.
+
+On n'utilisera pas ici le démon classique de telnet mais un démon
+générique nommé \textit{inetd} permettant de minimiser le nombre
+de processus lancés. Quand \textit{inetd} reçoit une demande 
+de connexion, il lance le processus serveur adéquat. 
+
+Pour ce faire, on installe le serveur telnet.
+\begin{verbatim}
+  (passerelle)# sudo apt-get install telnetd
+\end{verbatim}
+
+Puis, on modifie le fichier \textit{/etc/inetd.conf} pour y
+ajouter le service \textit{telnet} dans la section des services
+standard.
+
+RETROUVER LE FICHIER SUR LA VM POUR AVOIR LA LIGNE EXACTE
+
+\vspace{1\baselineskip}
+On va maintenant tenter d'intercepter le couple \textit{login/passwd}
+lors d'une connexion \textit{telnet} entre \textit{client-bsd}
+et \textit{passerelle}.
+
+Pour opérer, on utilise l'outil \textit{ettercap} depuis la machine BackTrack. 
+Il faut le lancer ainsi :
+\begin{verbatim}
+  (backtrack)# ettercap -G
+\end{verbatim}
+
+Dans le menu, on clique tout d'abord sur \textit{Sniff} et on sélectionne 
+\textit{Unified sniffing} avant de choisir l'interface \textit{eth1}
+qui est sur LAN Travaux Pratiques.
+
+Dans le menu \textit{Hosts}, on lance un scan du réseau local puis
+depuis le même menu, on affiche la liste des hôtes.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.5]{Hosts.PNG}
+	\caption{\label{hosts} Hôtes détectés par le scan}
+\end{figure}
+
+On reconnaît les adresses IP de \textit{passerelle} et 
+\textit{client-bsd}. Il suffit donc de spécifier que ce sont
+nos deux cibles avec les boutons \textit{TARGET 1} et \textit{TARGET 2}.
+
+Comme il s'agit d'un réseau commuté, on doit empoisonner les tables
+ARP (\textit{ARP poisoning}) avant de lancer le \textit{sniffing}.
+
+Dans le menu \textit{Mitm}, on sélectionne donc \textit{ARP Poisoning}
+avant de sélectionner dans le menu \textit{Start} le choix \textit{Start Sniffing}.
+
+La machine \textit{client-bsd} se connecte avec \textit{telnet}.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.5]{Telnet.PNG}
+	\caption{\label{hosts} Connexion à \textit{passerelle}}
+\end{figure}
+
+Et on constate qu'il est extrêmement facile d'obtenir les informations suivantes :
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.5]{Passwd.PNG}
+	\caption{\label{hosts} Couple en clair}
+\end{figure}
+ 
+
 \section{Configuration du serveur web}
 \subsection{Tests}
 
