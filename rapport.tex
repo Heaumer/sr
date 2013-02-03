@@ -325,12 +325,20 @@ On prend soin d'ajuster les permissions du fichier :
   (passerelle)# chmod 700 authorized_keys2
 \end{verbatim}
  
-
-
-
 Enfin, on s'assure que l'authentification par clefs marche bien, et
 qu'il est difficile de récupérer les informations sur la connexion
 avec une attaque mitm.
+
+La configuration du serveur ssh se fait dans le fichier \textit{/etc/ssh/sshd\_config}.
+Il peut-être intéressant d'y faire les réglages suivants:
+\begin{description}
+	\item[X11Forwarding no] pour réduire le traffic X$11$, et donc réduire les
+	risques de sécurité;
+	\item[PermitRootLogin no] pour désactiver un accès distant direct au compte
+	root;
+	\item[Port 42], où tout autre port différent du port $22$ pour éviter les
+	tentatives de connexions lancées par des bots.
+\end{description}
 
 \section{Configuration du serveur web}
 \subsection{Tests}
