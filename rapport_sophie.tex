@@ -1,0 +1,321 @@
+\documentclass[a4paper]{article}
+
+\usepackage[francais]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[OT1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{subfigure}
+
+\graphicspath{ {./imgs/} }
+
+% shorten margin
+\usepackage[]{fullpage}
+
+\title{Configuration et sécurisation de services réseaux}
+\author{Mathieu BIVERT, Sophie VALENTIN}
+
+\makeatletter
+\def\thickhrulefill{\leavevmode \leaders \hrule height 1pt\hfill \kern \z@}
+\def\maketitle{
+	\null
+	\thispagestyle{empty}
+	\vskip 1cm
+	\begin{center}
+		\normalfont\large\huge\@author
+	\end{center}
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\hrule height 2pt
+	\par
+	\begin{center}
+				\huge \strut \@title \par
+				\@date
+	\end{center}
+	\hrule height 2pt
+	\par
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\vfil
+	\begin{center}
+  			\huge Professeur : Bruno MARTIN
+    \end{center}
+	\null
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[scale=.5]{polytech.png}
+	\end{figure}
+	\vfil
+	\cleardoublepage
+}
+\makeatother
+
+\begin{document}
+\maketitle
+
+\newpage
+\tableofcontents
+
+\newpage
+
+\section{Topologie}
+\section{Mise en place d'une passerelle et accès à Internet}
+Une passerelle (gateway) est un homme du milieu reliant
+deux réseaux distincts. Dans le cas présent, la machine \textit{passerelle}
+doit faire communiquer les deux réseaux SLAN (192.168.1.0/24) et LAN Travaux 
+Pratiques (192.168.2.0/24).
+
+La passerelle doit être capable de transmettre des paquets IP :
+\begin{verbatim}
+  (passerelle)# echo 1 > /proc/sys/net/ipv4/ip_forward
+\end{verbatim}
+
+Afin de maintenir l'\textit{IP forwarding} après un reboot de la machine
+\textit{passerelle}, on décommente dans le fichier \textit{/etc/sysctl.conf}
+la ligne suivante :
+\begin{verbatim}
+  #net.ipv4.ip_forward=1
+\end{verbatim}
+
+\vspace{1\baselineskip}
+L'IP Masquerade (Network Address Translation) doit être
+activée. Cette fonctionnalité modifie les entêtes IPs du trafic
+passant par \textit{passerelle} afin de rendre invisibles, au niveau IP,
+les machines de LAN Travaux Pratiques depuis l'extérieur.
+Ici on utilise du NAT dit de source utilisant la chaîne 
+\textit{POSTROUTING} puisqu'on modifie les adresses sources du paquet.
+\begin{verbatim}
+  (passerelle)# iptables -t nat -A POSTROUTING -o eth0 -s 192.168.2.0/24 -j MASQUERADE
+\end{verbatim}
+
+Note : L'interface \textit{eth0} est connectée au réseau SLAN.
+
+\vspace{1\baselineskip}
+Enfin, syslogd doit être activé afin de logger les activités d'iptables
+
+\begin{verbatim}
+  (passerelle)# apt-get install inetutils-syslogd
+  (passerelle)# edit /etc/syslog.conf # logs dans /var/log/kernel.log
+  (passerelle)# services syslog
+\end{verbatim}
+
+\subsection{Tests}
+On choisit un client, par exemple \textit{client-bsd}. On lui
+retire l'interface réseau connectée à SLAN \textit{em0}, et on s'assure que
+la machine est bien connectée sur LAN Travaux Pratiques via \textit{em1}, et
+qu'elle peut communiquer avec la passerelle. 
+\begin{verbatim}
+  (client-bsd)# ifconfig em0 down
+  (client-bsd)# ifconfig em1
+  (client-bsd)# ping passerelle.cs.sr
+\end{verbatim}
+
+\vspace{1\baselineskip}
+Puis, on configure la table de routage du client afin
+que la route par défaut passe par \textit{passerelle} et on vérifie :
+\begin{verbatim}
+  (client-bsd)# netstat -r
+\end{verbatim}
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.5]{Internet.png}
+	\caption{\label{routes} Table de routage de \textit{client-bsd}}
+\end{figure}
+
+\vspace{1\baselineskip}
+Enfin, on s'assure qu'il est possible de contacter le serveur
+ et d'atteindre Internet.
+\begin{verbatim}
+  (client-bsd)# ping -c3 google.fr
+\end{verbatim}
+
+\vspace{1\baselineskip}
+On vérifie les logs sur la passerelle:
+\begin{verbatim}
+  (passerelle)# tail -f /var/log/kernel.log
+\end{verbatim}
+
+nmap ? Faire peut-être une partie "outils d'attaque et... d'audit"
+où on explique l'utilisation de nmap, metasploit, vas (TP de demain)
+et en quoi ils nous aident à sécu notre propre réseau.
+
+\section{Mise à disposition d'un accès distant sur la machine et sécurisation}
+Telnet, SSH, VPN
+Expliquer comment mettre en place TCP Wrapper avec Telnet mais pas sécurisé.
+essai ssh avec mitm? (normalement il affiche un message du genre
+"SOMEONE MAY BE ON THE CABLE!")
+
+\subsection{Serveur Telnet et attaques de \textit{sniffing}}
+
+On commence par installer un serveur \textit{telnet} afin d'offrir
+un premier accès distant à la machine \textit{passerelle}.
+
+On n'utilisera pas ici le démon classique de telnet mais un démon
+générique nommé \textit{inetd} permettant de minimiser le nombre
+de processus lancés. Quand \textit{inetd} reçoit une demande 
+de connexion, il lance le processus serveur adéquat. 
+
+Pour ce faire, on installe le serveur telnet.
+\begin{verbatim}
+  (passerelle)# sudo apt-get install telnetd
+\end{verbatim}
+
+Puis, on modifie le fichier \textit{/etc/inetd.conf} pour y
+ajouter le service \textit{telnet} dans la section des services
+standard.
+
+RETROUVER LE FICHIER SUR LA VM POUR AVOIR LA LIGNE EXACTE
+
+\vspace{1\baselineskip}
+On va maintenant tenter d'intercepter le couple \textit{login/passwd}
+lors d'une connexion \textit{telnet} entre \textit{client-bsd}
+et \textit{passerelle}.
+
+Pour opérer, on utilise l'outil \textit{ettercap} depuis la machine BackTrack. 
+Il faut le lancer ainsi :
+\begin{verbatim}
+  (backtrack)# ettercap -G
+\end{verbatim}
+
+Dans le menu, on clique tout d'abord sur \textit{Sniff} et on sélectionne 
+\textit{Unified sniffing} avant de choisir l'interface \textit{eth1}
+qui est sur LAN Travaux Pratiques.
+
+Dans le menu \textit{Hosts}, on lance un scan du réseau local puis
+depuis le même menu, on affiche la liste des hôtes.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.4]{Hosts.PNG}
+	\caption{\label{hosts} Hôtes détectés par le scan}
+\end{figure}
+
+On reconnaît les adresses IP de \textit{passerelle} et 
+\textit{client-bsd}. Il suffit donc de spécifier que ce sont
+nos deux cibles avec les boutons \textit{TARGET 1} et \textit{TARGET 2}.
+
+Comme il s'agit d'un réseau commuté, on doit empoisonner les tables
+ARP (\textit{ARP poisoning}) avant de lancer le \textit{sniffing}.
+
+Dans le menu \textit{Mitm}, on sélectionne donc \textit{ARP Poisoning}
+avant de sélectionner dans le menu \textit{Start} le choix \textit{Start Sniffing}.
+
+La machine \textit{client-bsd} se connecte avec \textit{telnet}.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.5]{Telnet.PNG}
+	\caption{\label{hosts} Connexion à \textit{passerelle}}
+\end{figure}
+
+Et on constate qu'il est extrêmement facile d'obtenir le couple \textit{login/passwd} 
+en clair :
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.5]{Telnet_passwd.png}
+	\caption{\label{hosts} Couple en clair}
+\end{figure}
+
+On ne veut donc pas proposer un service d'accès à distance non sécurisé, c'est-à-dire
+basé sur des communications transmises en clair sur le réseau. 
+
+\subsection{Serveur SSH et optimisations}
+
+Plutôt que d'utiliser un protocole transmettant les données en clair, on se penche
+donc sur un protocole sécurisé. On choisit SSH qui permet l'accès distant et chiffre les données.
+
+SSH s'utilise de la façon suivante :
+\begin{verbatim}
+  (client-bsd)# ssh -v passerelle.cs.sr -l cssr
+\end{verbatim}
+
+Afin que l'utilisateur ne s'authentifie pas par mot de passe lors de la connexion,
+il est possible d'utiliser une authentification par clé.
+Tout d'abord, côté client, on crée la paire de clés :
+\begin{verbatim}
+  (client-bsd)# ssh-keygen -t rsa
+\end{verbatim}
+
+Deux fichiers sont alors générés :
+\begin{description}
+	\item[id_rsa.pub] Clé publique devant être connue du serveur
+	\item[id_rsa] Clé privée ne devant pas être dévoilée
+\end{description}
+
+On transmet ainsi la clé publique sur le serveur, par exemple avec \textit{scp}.
+Le serveur doit alors modifier son fichier des clés autorisées (il s'agit
+de \textit{authorized_keys2} qui se trouve dans le dossier \textit{~/.ssh}.
+
+On prend soin d'ajuster les permissions du fichier :
+\begin{verbatim}
+  (passerelle)# chmod 700 authorized_keys2
+\end{verbatim}
+
+\section{Configuration du serveur web}
+\subsection{Tests}
+
+\section{Configuration serveur (smtp+imaps) et client (gpg) email}
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.5]{emailrouting.png}
+	\caption{\label{emailrouting} Un MUA envoie un email à un MTA, qui
+		le forward jusqu'à un MTA final, qui le transmet à un MDA.
+		Enfin, le MUA du destinataire récupère l'email depuis ce MDA}
+\end{figure}
+
+La figure \ref{emailrouting} donne un exemple simple de routage d'email,
+faisant intervenir $3$ pièces logicielles:
+\begin{description}
+	\item[MTA] Mail Transfer Agent (eg. serveur SMTP), qui route les
+		emails de domaines en domaines jusqu'à arriver à bonne destination;
+	\item[MDA] Mail Delivery Agent (eg. serveur IMAP(s)), qui délivre
+		les emails aux MUAs qui lui demandent;
+	\item[MUA] Mail User Agent c'est le client email, dont le rôle principal
+		est de récupérer les emails depuis un MDA, et d'en envoyer à un MTA;
+\end{description}
+D'autres agents optionnels peuvent venir s'y greffer.
+
+En pratique, on installe et configure postfix sur \textit{passerelle}.
+
+\subsection{Tests}
+
+\section{Configuration VPN}
+\subsection{Tests}
+
+\section{OpenVAS \& Metasploit}
+
+\end{document}
