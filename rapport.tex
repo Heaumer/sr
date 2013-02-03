@@ -14,8 +14,8 @@
 % shorten margin
 \usepackage[]{fullpage}
 
-\title{Rapport des TDs du cours de Sécurité Réseau par Bruno Martin}
-\author{Sophie Valentin, Mathieu Bivert}
+\title{Configuration et sécurisation de services réseaux}
+\author{Mathieu BIVERT, Sophie VALENTIN}
 
 \makeatletter
 \def\thickhrulefill{\leavevmode \leaders \hrule height 1pt\hfill \kern \z@}
@@ -26,6 +26,8 @@
 	\begin{center}
 		\normalfont\large\huge\@author
 	\end{center}
+	\vfil
+	\vfil
 	\vfil
 	\vfil
 	\vfil
@@ -68,6 +70,9 @@
 	\vfil
 	\vfil
 	\vfil
+	\begin{center}
+  			\huge Professeur : Bruno MARTIN
+    \end{center}
 	\null
 	\begin{figure}[!ht]
 		\centering
@@ -87,25 +92,38 @@
 \newpage
 
 \section{Topologie}
-\section{Configuration de la passerelle}
+\section{Mise en place d'une passerelle et accès à Internet}
 Une passerelle (gateway) est un homme du milieu reliant
 deux réseaux distincts. Dans le cas présent, la machine \textit{passerelle}
-doit faire communiquer les deux réseaux SLAN et LAN Travaux Pratiques.
+doit faire communiquer les deux réseaux SLAN (192.168.1.0/24) et LAN Travaux 
+Pratiques (192.168.2.0/24).
 
-La passerelle doit être capable de router du traffic:
+La passerelle doit être capable de transmettre des paquets IP :
 \begin{verbatim}
   (passerelle)# echo 1 > /proc/sys/net/ipv4/ip_forward
 \end{verbatim}
 
+Afin de maintenir l'\textit{IP forwarding} après un reboot de la machine
+\textit{passerelle}, on décommente dans le fichier \textit{/etc/sysctl.conf}
+la ligne suivante :
+\begin{verbatim}
+  #net.ipv4.ip_forward=1
+\end{verbatim}
+
+\vspace{1\baselineskip}
 L'IP Masquerade (Network Address Translation) doit être
-activée. Cette fonctionnalité modifie les entêtes IPs du traffic
+activée. Cette fonctionnalité modifie les entêtes IPs du trafic
 passant par \textit{passerelle} afin de rendre invisibles, au niveau IP,
 les machines de LAN Travaux Pratiques depuis l'extérieur.
-
+Ici on utilise du NAT dit de source utilisant la chaîne 
+\textit{POSTROUTING} puisqu'on modifie les adresses sources du paquet.
 \begin{verbatim}
   (passerelle)# iptables -t nat -A POSTROUTING -o eth0 -s 192.168.2.0/24 -j MASQUERADE
 \end{verbatim}
 
+Note : L'interface \textit{eth0} est connectée au réseau SLAN.
+
+\vspace{1\baselineskip}
 Enfin, syslogd doit être activé afin de logger les activités d'iptables
 
 \begin{verbatim}
@@ -115,27 +133,48 @@ Enfin, syslogd doit être activé afin de logger les activités d'iptables
 \end{verbatim}
 
 \subsection{Tests}
-On choisit un client, par exemple \textit{client-bsd}, on lui
-retire l'interface réseau connectée à SLAN, et on s'assure que
-la machine est bien connectée sur LAN Travaux Pratiques, et
-qu'elle peut communiquer avec la passerelle. Enfin, on s'assure
-qu'il est possible de contacter le serveur et les Internets.
-
+On choisit un client, par exemple \textit{client-bsd}. On lui
+retire l'interface réseau connectée à SLAN \textit{em0}, et on s'assure que
+la machine est bien connectée sur LAN Travaux Pratiques via \textit{em1}, et
+qu'elle peut communiquer avec la passerelle. 
 \begin{verbatim}
-  (client-bsd)# ifconfig em1 down # ou em0
-  (client-bsd)# ifconfig em0      # ou em1
+  (client-bsd)# ifconfig em0 down
+  (client-bsd)# ifconfig em1
   (client-bsd)# ping passerelle.cs.sr
-  (client-bsd)# netstat -r 
+\end{verbatim}
+
+\vspace{1\baselineskip}
+Puis, on configure la table de routage du client afin
+que la route par défaut passe par \textit{passerelle} et on vérifie :
+\begin{verbatim}
+  (client-bsd)# netstat -r
+\end{verbatim}
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.5]{Internet.png}
+	\caption{\label{routes} Table de routage de \textit{client-bsd}}
+\end{figure}
+
+\vspace{1\baselineskip}
+Enfin, on s'assure qu'il est possible de contacter le serveur
+ et d'atteindre Internet.
+\begin{verbatim}
   (client-bsd)# ping -c3 google.fr
 \end{verbatim}
 
+\vspace{1\baselineskip}
 On vérifie les logs sur la passerelle:
 \begin{verbatim}
   (passerelle)# tail -f /var/log/kernel.log
 \end{verbatim}
 
-serveur telnet. mitm depuis backtrack. ssh. nmap
+nmap ? Faire peut-être une partie "outils d'attaque et... d'audit"
+où on explique l'utilisation de nmap, metasploit, vas (TP de demain)
+et en quoi ils nous aident à sécu notre propre réseau.
 
+\section{Mise à disposition d'un accès distant sur la machine et sécurisation}
+Telnet, SSH, VPN
+Expliquer comment mettre en place TCP Wrapper avec Telnet mais pas sécurisé.
 essai ssh avec mitm? (normalement il affiche un message du genre
 "SOMEONE MAY BE ON THE CABLE!")
 
