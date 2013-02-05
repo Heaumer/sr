@@ -91,6 +91,16 @@
 
 \newpage
 
+\section{Scénario}
+Serveur « public » fournissant accès distant (VPN), compte email
+(postfix, dovecot, client email), espace web (apache).
+
+Encryption autant que faire ce peut.
+
+Logs.
+
+Outils d'audit.
+
 \section{Topologie}
 \section{Mise en place d'une passerelle et accès à Internet}
 Une passerelle (gateway) est un homme du milieu reliant
@@ -195,11 +205,11 @@ Pour ce faire, on installe le serveur telnet.
 
 Puis, on modifie le fichier \textit{/etc/inetd.conf} pour y
 ajouter le service \textit{telnet} dans la section des services
-standard.
-
+standard, de façon à ce qu'il soit démarré automatiquement
+en tant qu'utilisateur telnetd:
 \begin{verbatim}
   (passerelle)# grep '^telnet' /etc/inetd.conf
-  telnet stream tcp nowait root /usr/sbin/tcpd in.telnetd
+  telnet        stream    tcp nowait telnetd /usr/sbin/tcpd /usr/sbin/in.telnetd
 \end{verbatim}
 
 \vspace{1\baselineskip}
