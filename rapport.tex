@@ -397,10 +397,10 @@ Apache avec le support d'OpenSSL
 La figure \ref{emailrouting} donne un exemple simple de routage d'email,
 faisant intervenir $3$ pièces logicielles:
 \begin{description}
-	\item[MTA] Mail Transfer Agent (eg. serveur SMTP), qui route les
+	\item[MTA] Mail Transfer Agent (eg. serveur SMTP), qui relaye les
 		emails de domaines en domaines jusqu'à arriver à bonne destination;
-	\item[MDA] Mail Delivery Agent (eg. serveur IMAP(s)), qui délivre
-		les emails aux MUAs qui lui demandent;
+	\item[MDA] Mail Delivery Agent (eg. serveur IMAP(s)), qui reçoit les emails
+		du MTA du domaine et les délivre aux MUAs qui lui demandent;
 	\item[MUA] Mail User Agent c'est le client email, dont le rôle principal
 		est de récupérer les emails depuis un MDA, et d'en envoyer à un MTA;
 \end{description}
