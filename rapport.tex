@@ -401,6 +401,44 @@ D'autres agents optionnels peuvent venir s'y greffer.
 
 En pratique, on installe et configure postfix sur \textit{passerelle}.
 
+\subsection{Envoi et transfert d'emails avec Postfix (MTA)}
+
+\subsection{Récupération d'emails avec Dovecot (MDA) et Thunderbird (MUA)}
+
+\subsection{Des messages chiffrés et signés avec GnuPG}
+
+\subsubsection{Principe}
+
+GnuPG permet de chiffrer et signer des messages électroniques. 
+Chaque individu génère sa propre paire de clés : une publique et une privée.
+
+On envoie sa clé publique à ses correspondants. Ces derniers pourront à 
+terme nous écrire en toute confidentialité car ils chiffreront le message 
+avec notre clé publique et nous
+pourrons le lire grâce à notre clé privée.
+Cependant, nos correspondants ne font pas encore confiance à notre clé publique. 
+Ils doivent nous contacter (par un autre moyen de 
+communication) pour comparer l'empreinte de la clé publique qu'ils ont reçu et l'empreinte
+de notre clé publique. Une fois qu'ils ont confiance en la clé publique envoyée,
+ils la signent avec leur clé secrète. 
+
+
+Concernant la signature, nous appliquons notre clé privée sur le message que l'on souhaite
+signer et nos correspondants (qui connaissent notre clé publique) pourront
+vérifier que le message provient bel et bien de nous.
+
+\subsubsection{Mise en pratique}
+
+Pour simplifier l'utilisation de GnuPG, on utilise le plugin \textit{Enigmail} pour le MUA
+\textit{Thunderbird}. Et on crée une paire de clés (et un certificat de révocation)
+pour l'utilisateur \textit{alice} mais aussi pour l'utilisateur \textit{cssr}.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.5]{pgp.png}
+	\caption{\label{pgp} L'utilisateur \textit{cssr} reçoit un message d'Alice qui avait été signé et chiffré}
+\end{figure}
+
 \subsection{Tests}
 
 \section{Configuration VPN}
