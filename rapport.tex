@@ -385,7 +385,7 @@ Apache avec le support d'OpenSSL
 
 \subsection{Tests}
 
-\section{Configuration serveur (smtp+imaps) et client (gpg) email}
+\section{Service de messagerie électronique et sécurisation}
 \begin{figure}[!ht]
 	\centering
 	\includegraphics[scale=.5]{emailrouting.png}
@@ -409,6 +409,54 @@ D'autres agents optionnels peuvent venir s'y greffer.
 En pratique, on installe et configure postfix sur \textit{passerelle}.
 
 \subsection{Envoi et transfert d'emails avec Postfix (MTA)}
+
+Postfix est un serveur SMTP modulaire et complexe.
+
+On installe le paquet \textit{postfix}
+\begin{verbatim}
+  (passerelle)# apt-get install postfix
+\end{verbatim}
+
+Une fois le paquet installé, il faut choisir la configuration de base : on choisit
+"SiteInternet" afin que Postfix crée lui-même les fichiers de configuration
+dans \textit{etc} et qu'il les remplisse de quelques directives de base.
+
+On modifie le fichier \textit{etc/main.cf}
+\begin{verbatim}
+  smtpd_banner = # On ne met rien pour ne pas donner inutilement des informations
+  myhostname = passerelle.cs.sr # De préférence /etc/hostname
+  mydomain = cs.sr
+  alias_maps = hash:/etc/aliases
+  alias_database = hash:/etc/aliases
+  
+  append_dot_mydomain = no
+  
+
+TODO!!!!!!
+
+# mydestination = passerelle, localhost.localdomain, , localhost
+mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+
+#mynetworks = 192.168.1.0/24, 127.0.0.0/8
+mynetworks = 127.0.0.0/8
+#mynetworks = 127.0.0.0/8
+inet_interfaces = all
+
+\end{verbatim}
+
+On prend soin d'exécuter le démon en mode \textit{debug} en modifiant 
+dans \textit{etc/master.cf} la ligne du service \textit{smtp} ainsi :
+\begin{verbatim}
+smtp      inet  n       -       n       -       -       smtpd -v
+\end{verbatim}
+
+L'utilisateur \textit{alice} est ensuite ajouté. 
+\begin{verbatim}
+  (passerelle)# adduser alice
+\end{verbatim}
+Le mot de passe UNIX est alors demandé.
+
+
 
 \subsection{Récupération d'emails avec Dovecot (MDA) et Thunderbird (MUA)}
 
