@@ -193,9 +193,21 @@ natd_interface="em0"
 (passerelle)# cat >> /boot/loader.conf
 ipfw_load="YES"
 ipdivert_load="YES"
+ipfw_nat_load="YES"
 net.inet.ip.fw.default_to_accept="1"
 ^D
 (passerelle)# reboot
+\end{verbatim}
+
+Le script de configuration du firewall active le diverting sur
+l'interface em$0$ et autorise tout le traffic entrant/sortant:
+\begin{verbatim}
+(passerelle)# cat /etc/fw.sh 
+#!/bin/sh
+ipfw -q -f flush
+ipfw add divert natd all from any to any via em0
+ipfw nat 1 config if em0
+ipfw add allow ip from any to any
 \end{verbatim}
 
 Par défault, syslogd est activé:
