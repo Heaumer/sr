@@ -467,11 +467,38 @@ est utilisé. Ce dernier délègue la livraison des messages
   (passerelle)# less /var/mail/alice
 \end{verbatim}
 
-- VRFY
+Essayons d'envoyer un mail à un utilisateur qui n'existe pas : \textit{bob}.
+La commande \textit{VRFY} du protocole SMTP nous indique qu'il n'existe pas.
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.6]{VRFY.PNG}
+	\caption{\label{verify} Résultat \textit{VRFY}}
+\end{figure}
+ 
+On tente tout de même d'envoyer un mail avec \textit{mail}. Et 
+le \textit{MAILER-DAEMON} nous répond pour nous informer que
+l'email n'a pas pu être envoyé.
 
-- aliases
+Avec les aliases, il est possible d'indiquer à Postfix que certains
+utilisateurs locaux peuvent être redirigés vers des utilisateurs
+locaux voire distants.
+On souhaite ici que le courrier pour Alice.Personne soit délivré
+à Alice. 
+Pour ce faire, on modifie les aliases dans \textit{/etc/aliases}.
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.7]{Aliases.PNG}
+	\caption{\label{alias} Fichier des aliases}
+\end{figure}
 
-- mynetworks et domaine mauvais
+Il faut ensuite mettre à jour les aliases.
+\begin{verbatim}
+  (passerelle)# postalias /etc/aliases
+\end{verbatim}
+
+Et \textit{alice} reçoit bien les messages destinés à
+\textit{Alice.Personne}.
+
 On peut noter qu'il est préférable de ne pas mettre le réseau local 192.168.1.0/24 dans
 \textit{mynetworks}. Effectivement, cela considère qu'il est de confiance
 et qu'on peut se passer de faire des vérifications sur le nom de domaine
