@@ -15,7 +15,7 @@
 \usepackage[]{fullpage}
 
 \title{Configuration et sécurisation de services réseaux}
-\author{Sophie VALENTIN, Mathieu BIVERT}
+\author{Mathieu BIVERT, Sophie VALENTIN}
 
 \makeatletter
 \def\thickhrulefill{\leavevmode \leaders \hrule height 1pt\hfill \kern \z@}
@@ -544,6 +544,12 @@ On installe les paquets pour Dovecot.
   (passerelle)# sudo apt-get install dovecot-imapd
 \end{verbatim}
 
+A l'installation, un certificat et une clé privée pour Dovecot
+sont générés automatiquement. Le certificat et la clé
+se trouvent respectivement dans \textit{/etc/ssl/certs/dovecot.pem}
+et \textit{/etc/ssl/private/dovecot.key}. Nous les utiliserons
+pour activer SSL/TLS sur le serveur IMAP.
+
 On modifie dans \textit{/etc/dovecot/dovecot.conf} la ligne 26.
 \begin{verbatim}
   listen = *
@@ -576,8 +582,83 @@ pour la communication Dovecot - Postfix.
   } 
 \end{verbatim}
 
-- Test Thunderbird : IMAP
-- SSL sur Dovecot : certificats
+On remarque dans \textit{/etc/dovecot/conf.d/10-auth.conf} que
+les utilisateurs sont identifiés grâce à leurs identifiants
+UNIX.
+
+Finalement on redémarre le service \textit{dovecot}
+\begin{verbatim}
+  (passerelle)# service dovecot restart 
+\end{verbatim}
+
+\subsubsection{Tests IMAP depuis Thunderbird (MUA)}
+
+On configure maintenant Thunderbird sans sécuriser la connexion
+puisque le service utilisé, IMAP, n'implémente pas SSL/TLS.
+
+A la demande de réception des messages, les identifiants
+d'Alice sont demandés. Quant à l'envoi d'un message, ils ne 
+nécessitent pas d'authentification.
+
+L'email de \textit{cssr} est bien reçu par Alice.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.7]{Thunderbird.PNG}
+	\caption{\label{mua} MUA}
+\end{figure}
+
+\subsubsection{Passage à IMAPS et SMTPS}
+
+Pour utiliser des services sécurisés, on a besoin d'implémenter SSL/TLS.
+On va donc mettre en place un certificat SSL.
+
+Il a été mentionné qu'un certificat et une clé privée avaient été générés
+par Dovecot. Nous allons donc les utiliser dans la suite de la configuration.
+Bien entendu, on pourrait créer "à la main" le certificat \textit{mails.crt} avec les commandes
+suivantes :
+\begin{verbatim}
+  (passerelle)# openssl genrsa -out mails.key 2048 # Clé privée
+  (passerelle)# openssl req -new -days 3650 -key mails.key -out mails.csr # Demande de certificat
+  (passerelle)# openssl x509 -in mails.csr -out mails.crt -req -signkey mails.key -days 3650 
+\end{verbatim}
+Et on pourra supprimer le fichier \textit{mails.csr} qui n'est plus utile.
+On peut également utiliser le script \textit{mkcert.sh} fourni par Dovecot.
+
+On commence par configurer Dovecot. Dans le fichier \textit{/etc/dovecot/conf.d/10-ssl.conf} :
+\begin{verbatim}
+  ssl = yes # Ligne 6
+  ssl_cert = </etc/ssl/certs/dovecot.pem # Ligne 12
+  ssl_key = </etc/ssl/private/dovecot.pem # Ligne 13
+\end{verbatim}
+
+On relance le démon Dovecot.
+
+Puis, on configure Postfix qui va utiliser le même certificat pour SMTPS.
+Dans le fichier \textit{/etc/postfix/main.cf}, il faut ajouter :
+\begin{verbatim}
+  smtpd_use_tls = yes
+  smtpd_tls_cert_file = /etc/ssl/certs/dovecot.pem
+  smtpd_tls_key_file = /etc/ssl/private/dovecot.key
+  smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+\end{verbatim}
+
+Il faut également activer le démon \textit{smtps} dans \textit{/etc/postfix/master.cf}
+et décommenter les lignes suivantes :
+\begin{verbatim}
+smtps     inet  n       -       -       -       -       smtpd
+  -o syslog_name=postfix/smtps
+  -o smtpd_tls_wrappermode=yes
+\end{verbatim}
+
+\subsubsection{Tests IMAPS et SMTPS depuis Thunderbird (MUA)}
+
+Cette fois-ci, on configure Thunderbird pour qu'il utilise
+une connexion sécurisée pour le serveur entrant (IMAPS, port 993)
+et pour le serveur sortant (SMTPS, port 465).
+Dans les deux cas, on fournit un "mot de passe normal".
+Avec une connexion sécurisée, on ne peut pas lire ce mot de passe même
+si le mot de passe n'est pas chiffré.
 
 \subsection{"Tunneliser" une connexion IMAP avec SSH}
 
