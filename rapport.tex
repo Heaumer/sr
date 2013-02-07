@@ -506,9 +506,80 @@ des destinataires.
 
 \subsection{Récupération d'emails avec Dovecot (MDA) et Thunderbird (MUA)}
 
+Nous aimerions que nos utilisateurs UNIX disposent d'un système 
+leur permettant de consulter et gérer à distance leurs messages.
+Le protocole IMAP offre ses fonctionnalités. 
+
+\subsubsection{Passage au format \textit{maildir}}
+
 On utilise \textit{maildrop} au lieu de \textit{procmail}.
 L'agent \textit{maildrop} sait notamment délivrer le courrier aux dossiers au format
-\textit{Maildir}. 
+\textit{Maildir}. L'agent \textit{procmail} délivrait, lui, le courrier
+en utilisant le format \textit{mailbox} c'est-à-dire en concaténant
+tous les messages dans un même fichier. \textit{Maildir} permet
+d'avoir un fichier par message.
+Installons donc \textit{maildrop}
+\begin{verbatim}
+  (passerelle)# sudo apt-get install maildrop
+\end{verbatim}
+
+Il faut modifier la configuration de Postfix (\textit{/etc/postfix/main.cf}).
+\begin{verbatim}
+  mailbox_command = /usr/bin/maildrop
+\end{verbatim}
+
+On crée une boîte aux lettres par utilisateur UNIX, dans leur \$HOME.
+\begin{verbatim}
+  (passerelle)# cd ~
+  (passerelle)# maildirmake
+\end{verbatim}
+
+Et bien sûr, on recharge la configuration de Postfix.
+
+\subsubsection{Ajout du serveur IMAP}
+
+On installe les paquets pour Dovecot.
+\begin{verbatim}
+  (passerelle)# sudo apt-get install dovecot-common
+  (passerelle)# sudo apt-get install dovecot-imapd
+\end{verbatim}
+
+On modifie dans \textit{/etc/dovecot/dovecot.conf} la ligne 26.
+\begin{verbatim}
+  listen = *
+\end{verbatim}
+
+La méthode d'authentification va être modifié dans 
+\textit{/etc/dovecot/conf.d/10-auth.conf}. 
+On autorise le \textit{plain text} parce que
+SSL/TLS sera utilisé.
+\begin{verbatim}
+  disable_plaintext_auth = no # ligne 9
+  auth_mechanisms = plain login # ligne 97
+\end{verbatim}
+
+Dans \textit{/etc/dovecot/conf.d/10-mail.conf}, on
+définit que les dossier des messages se trouvent 
+dans \textit{~/Maildir}.
+\begin{verbatim}
+  mail_location = maildir:~/Maildir
+\end{verbatim}
+
+Puis, dans \textit{/etc/dovecot/conf.d/10-master.conf}
+pour la communication Dovecot - Postfix.
+\begin{verbatim}
+  # Postfix smtp-auth
+  unix_listener /var/spool/postfix/private/auth { # Ligne 88
+    mode = 0666
+    user = postfix # à ajouter
+    group = postfix # à ajouter
+  } 
+\end{verbatim}
+
+- Test Thunderbird : IMAP
+- SSL sur Dovecot : certificats
+
+\subsection{"Tunneliser" une connexion IMAP avec SSH}
 
 \subsection{Des messages chiffrés et signés avec GnuPG}
 
@@ -547,11 +618,10 @@ pour l'utilisateur \textit{alice} mais aussi pour l'utilisateur \textit{cssr}.
 	\caption{\label{pgp} L'utilisateur \textit{cssr} reçoit un message d'Alice qui avait été signé et chiffré}
 \end{figure}
 
-\subsection{Tests}
+\section{Outils d'audit : OpenVAS \& Metasploit}
 
-\section{Configuration VPN}
-\subsection{Tests}
+\section{Politique de sécurité : Flux autorisés}
 
-\section{OpenVAS \& Metasploit}
+Mettre règles de Firewall pour tous les services proposés.
 
 \end{document}
