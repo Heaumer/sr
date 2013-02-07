@@ -274,10 +274,10 @@ basé sur des communications transmises en clair sur le réseau.
  
 \subsection{Serveur SSH  et optimisations}
 SSH (Secure SHell) joue un rôle similaire à telnet, mais contrairement à ce
-dernier, il intègre des mécanismes de sécurité, comme l'encryption des
+dernier, il intègre des mécanismes de sécurité, comme le chiffrement des
 communications.
 
-On installe puis démarre un serveur ssh sur la plateforme:
+On installe puis démarre un serveur SSH sur la plateforme:
 \begin{verbatim}
   (passerelle)# apt-get install openssh-server
   (passerelle)# service ssh start
@@ -347,12 +347,12 @@ avec une attaque MITM.
 La configuration du serveur SSH se fait dans le fichier \textit{/etc/ssh/sshd\_config}.
 Il peut-être intéressant d'y faire les réglages suivants:
 \begin{description}
-	\item[X11Forwarding no] pour réduire le traffic X$11$, et donc réduire les
+	\item[X11Forwarding no] pour réduire le trafic X$11$, et donc réduire les
 	risques de sécurité;
 	\item[PermitRootLogin no] pour désactiver un accès distant direct au compte
 	root;
 	\item[Port 42], où tout autre port différent du port $22$ pour éviter les
-	tentatives de connexions lancées par des bots.
+	tentatives de connexions lancées par des bots (déni de service).
 \end{description}
 
 \subsection{Accès distant par VPN}
@@ -664,9 +664,26 @@ si le mot de passe n'est pas chiffré.
 
 \subsection{"Tunneliser" une connexion IMAP avec SSH}
 
+Le protocole IMAP peut être sécurisée en utilisant la technique
+de \textit{SSH tunneling}. En effet, SSH (qui est associé au port 22) est 
+capable de chiffrer et déchiffrer le trafic d'autres applications sur
+d'autres ports. SSH fournit alors un "tunnel sécurisé" à d'autres
+connexions TCP/IP. 
+
+Le serveur IMAP doit posséder un serveur SSH, ce qui est notre cas.
+Depuis \textit{client-bsd}, on va mettre en place le tunnel :
+\begin{verbatim}
+  (client-bsd)# ssh -L2013:localhost:143 passerelle.cs.sr
+\end{verbatim}
+
 \subsection{Des messages chiffrés et signés avec GnuPG}
 
 \subsubsection{Principe}
+
+Il est bon de chiffrer les connexions, mais si les données
+circulent par d'autres serveurs de courrier, le chiffrement
+de la connexion n'est plus garanti. C'est pourquoi il faut 
+envisager un chiffrement des données elles-mêmes. 
 
 GnuPG permet de chiffrer et signer des messages électroniques. 
 Chaque individu génère sa propre paire de clés : une publique et une privée.
