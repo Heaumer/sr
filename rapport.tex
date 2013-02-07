@@ -360,7 +360,29 @@ Il peut-être intéressant d'y faire les réglages suivants:
 Alors que SSH permet l'accès sécurisé à une machine distante (le serveur SSH),
 un VPN permet d'accéder au serveur VPN et à son réseau local de façon sécurisée.
 
-BLABLABLA
+On désire établir un réseau virtuel d'adresse 10.0.0.0 entre le client \textit{client-bsd} 
+et le serveur \textit{passerelle}. 
+On installe le paquet \textit{openvpn} sur chaque machine :
+\begin{verbatim}
+  (passerelle)# apt-get install openvpn
+  (client-bsd)# pkg_add -r openvpn
+\end{verbatim}
+
+On effectue un premier test non chiffré.
+\begin{verbatim}
+  (passerelle)# openvpn --dev tun0 --ifconfig 10.0.0.1 10.0.0.2
+  (client-bsd)# openvpn --remote passerelle.cs.sr --dev tun0 --ifconfig 10.0.0.2 10.0.0.1
+\end{verbatim}
+
+De chaque côté, une interface réseau \textit{tun0} apparaît : il s'agit
+d'une interface "Point-à-point".
+Et on fait quelques tests de connectivité dans le réseau virtuel.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.6]{Telnet_VPN.PNG}
+	\caption{\label{telnet_vpn} Le serveur est accessible via son interface \textit{tun0}}
+\end{figure}
 
 \section{Configuration d'un serveur web et d'OpenSSL}
 \subsection{Installation d'OpenSSL}
