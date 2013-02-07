@@ -358,7 +358,7 @@ Il peut-être intéressant d'y faire les réglages suivants:
 \subsection{Accès distant par VPN}
 
 Alors que SSH permet l'accès sécurisé à une machine distante (le serveur SSH),
-un VPN permet d'accéder au serveur VPN et à son réseau local de façon sécurisée.
+un VPN (Virtual Private Network) permet d'accéder au serveur VPN et à son réseau local de façon sécurisée.
 
 On désire établir un réseau virtuel d'adresse 10.0.0.0 entre le client \textit{client-bsd} 
 et le serveur \textit{passerelle}. 
@@ -383,6 +383,48 @@ Et on fait quelques tests de connectivité dans le réseau virtuel.
 	\includegraphics[scale=.6]{Telnet_VPN.PNG}
 	\caption{\label{telnet_vpn} Le serveur est accessible via son interface \textit{tun0}}
 \end{figure}
+
+Un VPN a la propriété d'être privé : cela signifie que seules les entités de part et
+d'autre du VPN peuvent accéder aux données en clair. Il est donc
+indispensable de chiffrer les communications avec un VPN. Il existe
+cependant plusieurs techniques cryptographiques.
+
+\subsubsection{Clé partagée} 
+
+On engendre une clé partagée sur le serveur.
+\begin{verbatim}
+  (passerelle)# openvpn --genkey --secret static.key
+\end{verbatim}
+
+Puis, on recopie cette clé sur \textit{client-bsd} avec la commande \textit{scp}
+qui est sécurisée.
+
+On peut relancer maintenant le client et le serveur avec les commandes suivantes.
+\begin{verbatim}
+  (passerelle)# openvpn --dev tun0 --ifconfig 10.0.0.1 10.0.0.2 --secret /etc/openvpn/static.key
+  (client-bsd)# openvpn --remote passerelle.cs.sr --dev tun0 --ifconfig 10.0.0.2 10.0.0.1 
+                --secret /etc/openvpn/static.key
+\end{verbatim}
+
+La connexion est maintenant chiffrée.
+
+On remarque que le nombre de paramètres de la commande \textit{openvpn} devient
+de plus en plus important. C'est d'autant plus le cas si on veut effectuer 
+de la compression. 
+Il est préférable de lancer la commande en faisant référence à un fichier de configuration.
+\begin{verbatim}
+  (passerelle)# openvpn /etc/openvpn/server.conf
+  (client-bsd)# openvpn /etc/openvpn/client.conf
+\end{verbatim}
+
+\subsubsection{Utilisation de clés SSL/TLS}
+
+Avec cette technique, les pairs s'authentifient entre-eux à l'aide de certificats.
+Chaque pair (serveur ou un des clients) possède un certificat et une clé privée, gardée secrète.
+Les différents certificats sont signés par une autorité de certification. Et dans notre cas,
+l'autorité de certification est en fait le serveur.
+
+
 
 \section{Configuration d'un serveur web et d'OpenSSL}
 \subsection{Installation d'OpenSSL}
