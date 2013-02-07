@@ -419,26 +419,23 @@ On installe le paquet \textit{postfix}
 
 Une fois le paquet installé, il faut choisir la configuration de base : on choisit
 "SiteInternet" afin que Postfix crée lui-même les fichiers de configuration
-dans \textit{etc} et qu'il les remplisse de quelques directives de base.
+dans \textit{/etc} et qu'il les remplisse de quelques directives de base.
 
-On modifie le fichier \textit{etc/main.cf}
+On modifie le fichier \textit{/etc/postfix/main.cf}
 \begin{verbatim}
   smtpd_banner = # On ne met rien pour ne pas donner inutilement des informations
   myhostname = passerelle.cs.sr # De préférence /etc/hostname
   mydomain = cs.sr
   alias_maps = hash:/etc/aliases
   alias_database = hash:/etc/aliases
-  
-  append_dot_mydomain = no
 
-  #mynetworks = 192.168.1.0/24, 127.0.0.0/8
   mynetworks = 127.0.0.0/8 # Réseaux des clients de confiance
   mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain # Domaines locaux
   inet_interfaces = all
 \end{verbatim}
 
 On prend soin d'exécuter le démon en mode \textit{debug} en modifiant 
-dans \textit{etc/master.cf} la ligne du service \textit{smtp} ainsi :
+dans \textit{/etc/postfix/master.cf} la ligne du service \textit{smtp} ainsi :
 \begin{verbatim}
 smtp      inet  n       -       n       -       -       smtpd -v
 \end{verbatim}
