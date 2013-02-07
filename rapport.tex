@@ -430,18 +430,11 @@ On modifie le fichier \textit{etc/main.cf}
   alias_database = hash:/etc/aliases
   
   append_dot_mydomain = no
-  
 
-TODO!!!!!!
-
-# mydestination = passerelle, localhost.localdomain, , localhost
-mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
-
-#mynetworks = 192.168.1.0/24, 127.0.0.0/8
-mynetworks = 127.0.0.0/8
-#mynetworks = 127.0.0.0/8
-inet_interfaces = all
-
+  #mynetworks = 192.168.1.0/24, 127.0.0.0/8
+  mynetworks = 127.0.0.0/8 # Réseaux des clients de confiance
+  mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain # Domaines locaux
+  inet_interfaces = all
 \end{verbatim}
 
 On prend soin d'exécuter le démon en mode \textit{debug} en modifiant 
@@ -450,15 +443,48 @@ dans \textit{etc/master.cf} la ligne du service \textit{smtp} ainsi :
 smtp      inet  n       -       n       -       -       smtpd -v
 \end{verbatim}
 
+Il faut ensuite relancer le démon.
+\begin{verbatim}
+  (passerelle)# /etc/init.d/postfix reload
+\end{verbatim}
+
 L'utilisateur \textit{alice} est ensuite ajouté. 
 \begin{verbatim}
   (passerelle)# adduser alice
 \end{verbatim}
-Le mot de passe UNIX est alors demandé.
+Le mot de passe UNIX doit être précisé.
 
+Un mail depuis l'utilisateur \textit{cssr} est envoyé à Alice.
+\begin{verbatim}
+  (passerelle)# echo "Hello" | mail -s Test alice
+\end{verbatim}
 
+On peut vérifier que Postfix est utilisé en visualisant les logs
+dans \textit{/var/log/mail.log}
+
+La livraison étant locale, l'agent "local" de \textit{postfix}
+est utilisé. Ce dernier délègue la livraison des messages
+à \textit{procmail}. On pourra donc lire le message dans 
+\textit{/var/mail/alice}.
+\begin{verbatim}
+  (passerelle)# less /var/mail/alice
+\end{verbatim}
+
+- VRFY
+
+- aliases
+
+- mynetworks et domaine mauvais
+On peut noter qu'il est préférable de ne pas mettre le réseau local 192.168.1.0/24 dans
+\textit{mynetworks}. Effectivement, cela considère qu'il est de confiance
+et qu'on peut se passer de faire des vérifications sur le nom de domaine
+des destinataires. 
 
 \subsection{Récupération d'emails avec Dovecot (MDA) et Thunderbird (MUA)}
+
+On utilise \textit{maildrop} au lieu de \textit{procmail}.
+L'agent \textit{maildrop} sait notamment délivrer le courrier aux dossiers au format
+\textit{Maildir}. 
 
 \subsection{Des messages chiffrés et signés avec GnuPG}
 
