@@ -1001,6 +1001,10 @@ iptables -A INPUT -p tcp --dport $i -j ACCEPT \
 done
 \end{verbatim}
 
+On notera cependant que l'on ne filtre ici le traffic que sur
+les ports, et pas sur le contenu. Rien n'empêche de faire passer
+du traffic autre que du traffic SMTP sur le port SMTP par exemple.
+
 % < cat appendix.tex
 
 \newpage
