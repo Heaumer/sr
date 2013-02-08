@@ -424,6 +424,75 @@ Chaque pair (serveur ou un des clients) possède un certificat et une clé priv�
 Les différents certificats sont signés par une autorité de certification. Et dans notre cas,
 l'autorité de certification est en fait le serveur.
 
+Les scripts fournis dans la documentation d'OpenVPN permettent de construire l'AC ainsi
+que les différentes paires de clés.
+On commence par localiser et se déplacer dans le dossier \textit{easy-rsa/2.0}
+\begin{verbatim}
+  (passerelle)# cd /usr/share/doc/openvpn/examples/easy-rsa/2.0/
+\end{verbatim}
+
+On peut modifier le script \textit{vars} afin de renseigner des informations X509 du
+certificat (\textit{KEY\_COUNTRY}, \textit{KEY\_PROVINCE}, \textit{KEY\_CITY}, 
+\textit{KEY\_ORG} et \textit{KEY\_EMAIL}).
+
+Et on lance les scripts suivants :
+\begin{verbatim}
+  (passerelle)# . ./vars
+  (passerelle)# ./clean-all
+  (passerelle)# ./build-ca # Génère le certificat et la clé privée de l'AC
+  (passerelle)# ./build-dh # Génère les paramètres de l'échange des clés de DH
+\end{verbatim}
+
+L'avant-dernière commande a généré dans \textit{keys} les fichiers \textit{ca.crt}
+et \textit{ca.key}. Quant à la dernière, elle a généré le fichier \textit{dh1024.pem}.
+
+La commande \textit{./build-key-server passerelle} crée le certificat et la clé privée du serveur.
+La commande \textit{./build-key bsd} crée le certificat et la clé privée de \textit{client-bsd} et
+cette procédure doit être répétée pour chaque client du VPN.
+Les deux certificats sont signés par la clé privée de l'AC que l'on a créée.
+
+Au final on dispose des deux couples de clés dans le dossier \textit{keys} :
+\begin{itemize}
+  \item le certificat du serveur \textit{passerelle.crt}
+  \item la clé privée du serveur \textit{passerelle.key}
+  \item le certificat de \textit{client-bsd} \textit{bsd.crt}
+  \item la clé privée de \textit{client-bsd} \textit{bsd.key}
+\end{itemize}
+
+On doit maintenant transmettre le certificat et la clé privée de \textit{client-bsd}
+du serveur au client. On doit également transmettre le certificat de l'AC. 
+Comme la clé privée est une donnée secrète, on utilise
+un transfert sécurisé (par exemple avec \textit{scp}).
+
+Dans la documentation, des fichiers de configuration exemples sont donnés.
+On adapte alors \textit{server.conf} que l'on place sur \textit{passerelle}
+et \textit{client.conf} placé sur \textit{client-bsd}
+
+Dans \textit{server.conf}, on spécifie :
+\begin{verbatim}
+  ca /easy-rsa/2.0/keys/ca.crt # Certificat de l'AC
+  cert /easy-rsa/2.0/keys/passerelle.crt
+  key /easy-rsa/2.0/keys/passerelle.key  # This file should be kept secret
+  dh /easy-rsa/2.0/keys/dh1024.pem
+  server 10.8.0.0 255.255.255.0 
+\end{verbatim}
+
+Et dans \textit{client.conf}, on indique :
+\begin{verbatim}
+  remote passerelle.cs.sr 1194
+  ca /easy-rsa/2.0/keys/ca.crt
+  cert /easy-rsa/2.0/keys/bsd.crt
+  key /easy-rsa/2.0/keys/bsd.key
+\end{verbatim}
+
+On démarre le serveur et le client :
+\begin{verbatim}
+  (passerelle)# openvpn /easy-rsa/2.0/server.conf
+  (client-bsd)# openvpn /easy-rsa/2.0/client.conf
+\end{verbatim}
+
+Démarrage automatique du serveur /etc/init.d ...
+
 \section{Configuration d'un serveur web et d'OpenSSL}
 \subsection{Installation d'OpenSSL}
 \begin{verbatim}
