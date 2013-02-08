@@ -424,8 +424,6 @@ Chaque pair (serveur ou un des clients) possède un certificat et une clé priv�
 Les différents certificats sont signés par une autorité de certification. Et dans notre cas,
 l'autorité de certification est en fait le serveur.
 
-
-
 \section{Configuration d'un serveur web et d'OpenSSL}
 \subsection{Installation d'OpenSSL}
 \begin{verbatim}
@@ -442,13 +440,102 @@ Apache avec le support d'OpenSSL
 \begin{verbatim}
   (passerelle)# ./configure --option-du-chemin-ssl=/usr/local/openssl --prefix=/usr/local/apache2
   (passerelle)# /usr/local/bin/apache2/bin/apachectl start
-  (passerelle)# wget http://localhost -O /dev/stdout && echo OK
+  (passerelle)# nc passerelle 80
+  GET /
+  <html><body><h1>It works!</h1></body></html>
 \end{verbatim}
 
-\subsection{Passage à https}
+\subsection{Génération d'un certificat $X509$}
+On génère dans l'ordre:
+\begin{enumerate}
+	\item une cléf privée;
+	\item un CSR (Certificate Signing Request);
+	\item un certificat $X509$.
+\end{enumerate}
+
+Enfin, on copie (arbitrairement) ces fichiers dans
+\textit{/usr/local/apache2/conf/}:
+\begin{verbatim}
+(passerelle)# openssl version
+OpenSSL 0.9.8x 10 May 2012
+(passerelle)# openssl req -new -key ca.key -out ca.csr
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [AU]:FR
+State or Province Name (full name) [Some-State]:France
+Locality Name (eg, city) []:Nice
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:CSSR Ltd
+Organizational Unit Name (eg, section) []:
+Common Name (e.g. server FQDN or YOUR name) []:
+Email Address []:
+
+Please enter the following 'extra' attributes
+to be sent with your certificate request
+A challenge password []:A challenge password
+An optional company name []:
+(passerelle)# openssl x509 -req -days 365 -in ca.csr -signkey ca.key -out ca.crt
+Signature ok
+subject=/C=FR/ST=France/L=Nice/O=CSSR Ltd
+Getting Private key
+(passerelle)# cp ca.* /etc/ssl/
+\end{verbatim}
+
+Le certificat pourra être utilisé par les serveurs HTTPS, SMTP, IMAPS, etc.
+
+\subsection{Passage à HTTPS}
+On inclu le fichier \textit{extra/httpd-ssl.conf} depuis le
+\textit{httpd.conf}:
+\begin{verbatim}
+Include conf/extra/httpd-ssl.conf
+\end{verbatim}
+
+Puis, on règle les chemins vers le certificat et la clef dans ce
+dernier:
+\begin{verbatim}
+SSLCertificateFile "/usr/local/apache2/conf/ca.crt"
+SSLCertificateKeyFile "/usr/local/apache2/conf/ca.key"
+\end{verbatim}
+
+Enfin, on règle les paramètres pour le domaine virtuel dans lequel
+tourne la partie HTTPS:
+\begin{verbatim}
+DocumentRoot "/export/wwws/"
+ServerName www.example.com:443
+ServerAdmin you@example.com
+ErrorLog "/usr/local/apache2/logs/error_log"
+TransferLog "/usr/local/apache2/logs/access_log"
+
+<Directory /export/wwws/>
+    Options FollowSymLinks
+    AllowOverride None
+    Order deny,allow
+    #Deny from all
+</Directory>
+\end{verbatim}
 
 \subsection{Tests}
+Le script d'authentification fourni peut être étendu pour
+fournir une interface de création de compte sur la passerelle.
+On peut ainsi créer automatiquement un compte UNIX, un espace
+web personnel, etc. Pour plus de sécurité, on peut se contenter
+d'envoyer un email à l'administrateur de la machine avant la
+création du compte, pour que celui-ci s'assure que l'utilisateur
+a bien de bonnes raisons de demander un accès.
 
+Dans tout les cas, une attaque sur le serveur sécurisé avec
+ettercap fonctionne comme les attaques précèdentes (ARP spoofing)
+au détail près qu'ettercap génère un faux certificat de façon
+à récupérer les données d'authentification.
+
+Un utilisateur averti risque de le remarquer, à moins que cela
+soit sa première connexion sur le site. En effet, le certificat
+étant auto-signé, il devra au moins être ajouté manuellement
+la première fois.
 \section{Service de messagerie électronique et sécurisation}
 \begin{figure}[!ht]
 	\centering
@@ -789,6 +876,256 @@ pour l'utilisateur \textit{alice} mais aussi pour l'utilisateur \textit{cssr}.
 
 \section{Politique de sécurité : Flux autorisés}
 
-Mettre règles de Firewall pour tous les services proposés.
+En partant de la configuration suivante qui bloque le
+traffic entrant, et autorise tout le traffic sortant/forwardé:
+\begin{verbatim}
+(passerelle)# iptables -P INPUT DROP
+(passerelle)# iptables -P OUTPUT ACCEPT
+(passerelle)# iptables -P FORWARD ACCEPT
+\end{verbatim}
 
+On autorise le traffic entrant venant de localhost:
+\begin{verbatim}
+(passerelle)# iptables -A INPUT -s 127.0.0.1 -j ACCEPT
+\end{verbatim}
+
+% http://www.frozentux.net/iptables-tutorial/chunkyhtml/x1555.html
+On autorise les accès DNS sur le-serveur. Pour ce faire,
+on autorise le traffic entrant venant du port $53$ sur ladite
+machine, la connexion devant être \textit{ESTABLISHED}. Lors
+de l'envoi de la requête DNS via UDP par un client, la connexion
+sera vue comme \textit{NEW} par netfilter, puis lors de la réponse
+du serveur, comme \textit{ESTABLISHED}:
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.5]{state-udp-connection.png}
+\end{figure}
+
+Cet état est en fait utilisé lors des échanges attendant une réponse.
+Cela nous donne donc la règle suivante:
+\begin{verbatim}
+(passerelle)# iptables -A INPUT -i eth0 -p udp -s 192.168.1.1 --sport 53 \
+     -m state --state ESTABLISHED -j ACCEPT
+\end{verbatim}
+
+On ajoute sur la chaîne INPUT le fait qu'en cas de connexion
+TCP sur le port ssh, il faille accepter le traffic:
+\begin{verbatim}
+(passerelle)# iptables -A INPUT -p tcp --dport ssh -j ACCEPT
+\end{verbatim}
+
+D'une façon similaire, on autorise les accès HTTP et HTTPS:
+\begin{verbatim}
+(passerelle)# iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+(passerelle)# iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+\end{verbatim}
+
+Enfin, pour les services emails (dans l'ordre IMAP, IMAPS,
+SMTP (client/serveur) SMTPS)
+\begin{verbatim}
+(passerelle)# for i in 143 993 587 110 465; do \
+iptables -A INPUT -p tcp --dport $i -j ACCEPT \
+done
+\end{verbatim}
+
+% < cat appendix.tex
+
+\newpage
+\appendix
+
+\section{Configuration d'une passerelle réseau sous FreeBSD}
+Afin de voir les différences de configuration entre un Linux
+et une FreeBSD, on utilise ici une topologie plus simple, mais
+similaire à celle utilisée en cours.
+
+On utilise un VMware sous un système hôte Linux ($3.7.5-1$),
+faisant tourner deux machines virtuelles:
+\begin{description}
+	\item[FreeBSD 9.1], passerelle, disposant de deux adaptateurs
+	réseaux:
+	\begin{enumerate}
+		\item un configuré en NAT, switch virtuel
+			\textit{/dev/vmnet$8$} de l'hôte, permettant
+			d'obtenir une connexion internet;
+		\item l'autre en Host-Only, \textit{/dev/vmnet$1$},
+			permettant d'obtenir un réseau privé;
+	\end{enumerate}
+	\item[Plan9 (9front-1242.62aa45fc09be)], client, doté
+		d'un seul adaptateur Host-Only, configuré en t
+\end{description}
+
+En quelque sorte, la machine hôte joue ici le rôle du serveur
+dans la topologie du cours, en permettant un accès aux Internets;
+le réseau accessible via l'adaptateur en Host-Only permet de
+créer un réseau local analogue à \textit{LAN Travaux Pratiques}.
+
+Les parties ici présentes portant sur la configuration des services
+contiennent donc des doublons par rapport à la configuration
+de la passerelle sous Linux.
+
+\subsection{Configuration de la passerelle}
+\subsubsection{Interfaces réseaux}
+On commence par configurer l'interface NAT, en utilisant par
+exemple le serveur DHCP du switch virtuel. Ceci est normalement
+déjà effectué au démarrage (cf. \textit{/etc/rc.conf}):
+\begin{verbatim}
+(passerelle)# dhclient em0
+DHCPREQUEST on em0 to 255.255.255.255 port 67
+DHCPACK from 192.168.237.254
+bound to 192.168.237.132 -- renewal in 900 seconds.
+(passerelle)# grep em0 /etc/rc.conf 
+ifconfig_em0="DHCP"
+\end{verbatim}
+
+Puis on se connecte au réseau local, en utilisant ici une IP
+statique, et l'on fait en sorte que la connection soit effective
+au démmarage de la machine:
+\begin{verbatim}
+(passerelle)# ifconfig em1 192.168.98.2
+(passerelle)# cat >> /etc/rc.conf
+ifconfig_em1="inet 192.168.98.2 netmask 255.255.255.0"
+^D
+\end{verbatim}
+
+On s'assure que l'on peut bien communiquer avec le système hôte
+($x.x.x.1$) via les deux interfaces, et que l'on peut accéder aux
+Internets:
+\begin{verbatim}
+(passerelle)# for i in 192.168.98.1 192.168.237.1 google.fr; do ping -c1 -q $i; done
+PING 192.168.98.1 (192.168.98.1): 56 data bytes
+
+--- 192.168.98.1 ping statistics ---
+1 packets transmitted, 1 packets received, 0.0% packet loss
+round-trip min/avg/max/stddev = 0.217/0.217/0.217/0.000 ms
+PING 192.168.237.1 (192.168.237.1): 56 data bytes
+
+--- 192.168.237.1 ping statistics ---
+1 packets transmitted, 1 packets received, 0.0% packet loss
+round-trip min/avg/max/stddev = 0.117/0.117/0.117/0.000 ms
+PING google.fr (173.194.34.24): 56 data bytes
+
+--- google.fr ping statistics ---
+1 packets transmitted, 1 packets received, 0.0% packet loss
+round-trip min/avg/max/stddev = 50.611/50.611/50.611/0.000 ms
+\end{verbatim}
+
+\subsubsection{IP forwarding}
+On active l'IP forwarding, manuellement, puis automatiquement
+au démarrage:
+
+% http://docs.freebsd.org/doc/4.6.2-RELEASE/usr/share/doc/en_US.ISO8859-1/books/ppp-primer/x237.html
+\begin{verbatim}
+(passerelle)# sysctl net.inet.ip.forwarding=1
+net.inet.ip.forwarding: 0 -> 1
+(passerelle)# cat >> /etc/rc.conf
+gateway_enable="YES"
+^D
+\end{verbatim}
+
+\subsubsection{NAT}
+Par défaut, le noyau de FreeBSD n'est pas configuré pour faire
+du NAT; il recompiler un pépin en lui ajoutant l'option \textit{IPDIVERT}:
+\begin{verbatim}
+(passerelle)# cd /sys/i386/conf/
+(passerelle)# cp GENERIC LOCAL
+(passerelle)# cat >> LOCAL
+options         IPDIVERT                # Divert packets
+^D
+(passerelle)# config LOCAL
+Kernel build directory is ../compile/LOCAL
+Don't forget to do ``make cleandepend && make depend''
+(passerelle)# cd ../compile/LOCAL/ && make cleandepend && make depend && make && make install
+…
+kldxref /boot/kernel
+\end{verbatim}
+
+% http://www.freebsd.org/doc/en_US.ISO8859-1/books/handbook/network-natd.html
+Le NAT en lui-même est géré par le démon natd, qu'il faut lancer
+au démmarage, sur l'interface de sortie (em$0$):
+\begin{verbatim}
+(passerelle)# cat >> /etc/rc.conf
+natd_enable="YES"
+natd_interface="em0"
+^D
+\end{verbatim}
+
+Enfin, il faut dire au bootloader de charger les modules nécessaire
+pour l'IP-diverting:
+\begin{verbatim}
+(passerelle)# cat >> /boot/loader.conf
+ipdivert_load="YES"
+^D
+\end{verbatim}
+
+\subsubsection{Firewall}
+On choisit arbitrairement ipfw (deux autres choix possibles: pf et ipf),
+que l'on active au démmarage:
+\begin{verbatim}
+(passerelle)# cat >> /etc/rc.conf
+firewall_enable="YES"
+firewall_type="OPEN"
+firewall_script="/etc/fw.sh"
+\end{verbatim}
+
+Le script fw.sh configure la table NAT et le diverting pour l'interface
+\textit{em0}, tout en laissant passer tout le traffic entrant/sortant:
+\begin{verbatim}
+(passerelle)# cat /etc/fw.sh 
+#!/bin/sh
+ipfw -q -f flush
+ipfw add divert natd all from any to any via em0
+ipfw nat 1 config if em0
+ipfw add allow ip from any to any
+\end{verbatim}
+
+Puis on indique au bootloader de charger les bons modules pour que
+le pare-feu soit chargé, fonctionne avec le NAT, et soit laxiste:
+\begin{verbatim}
+(passerelle)# cat >> /boot/loader.conf
+ipfw_load="YES"
+ipfw_nat_load="YES"
+net.inet.ip.fw.default_to_accept="1"
+\end{verbatim}
+
+On n'oublie pas de redémarrer pour booter sur le nouveau pépin:
+\begin{verbatim}
+(passerelle)# reboot
+\end{verbatim}
+
+\subsubsection{Syslogd}
+Normalement, syslogd est activé par défaut. On s'assure que c'est
+bien le cas, et qu'il fonctionne effectivement:
+\begin{verbatim}
+(passerelle)# ps aux| grep sysl
+root  1140  0.0  0.6  9504 1504 ??  Ss    3:54AM  0:00.02 /usr/sbin/syslogd -s
+root  1419  0.0  0.7  9636 1688  0  S+    4:20AM  0:00.00 grep sysl
+(passerelle)# tail -5 /var/log/auth.log
+Feb  6 03:50:41 passerelle su: cssr to root on /dev/pts/0
+Feb  6 03:54:06 passerelle sshd[1237]: Server listening on :: port 22.
+Feb  6 03:54:06 passerelle sshd[1237]: Server listening on 0.0.0.0 port 22.
+Feb  6 03:54:29 passerelle sshd[1307]: Accepted keyboard-interactive/pam for cssr from 192.168.237.1 port 42087 ssh2
+Feb  6 03:54:31 passerelle su: cssr to root on /dev/pts/0
+\end{verbatim}
+
+\subsection{Configuration du client}
+On configure l'\og interface \fg\ réseau avec une IP statique,
+on ajoute une route par défaut pour faire passer le traffic par
+la passerelle, et on s'assure que l'on peut communiquer avec
+l'extérieur:
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.5]{ipconfig.png}
+\end{figure}
+
+\section{Mise en place de services sur la passerelle}
+Par manque de temps, tous les services vus en cours n'ont pas été
+testés sous FreeBSD. Néamoins, pour ceux qui l'ont été,
+la configuration est à quelques détails près la même dans
+les deux cas. Seule la gestion du routage/firewall change vraiment,
+puisque les logiciels utilisés sont dans les deux cas identiques.
+Cette section est donc volontairement vide, pour éviter les doublons
+avec le reste de ce document.
+
+On notera par exemple que pour postfix, il est nécessaire de
+désactiver sendmail pour éviter qu'ils ne se tappent dessus.
 \end{document}
