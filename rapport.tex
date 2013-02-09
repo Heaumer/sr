@@ -14,7 +14,7 @@
 % shorten margin
 \usepackage[]{fullpage}
 
-\title{Configuration et sécurisation de services réseaux}
+\title{Configuration et Sécurisation de Services Réseaux}
 \author{Mathieu BIVERT, Sophie VALENTIN}
 
 \makeatletter
@@ -615,7 +615,7 @@ l'interface \textit{eth1} de \textit{passerelle}. Le pont est correctement étab
 On ne triche pas puisque dans des manipulations précédentes, l'interface \textit{em1}
 de \textit{client-bsd} qui était connectée au réseau 192.168.2.0/24 a été désactivée.
 
-\section{Configuration d'un serveur web et d'OpenSSL}
+\section{Configuration d'un serveur web sécurisé par OpenSSL}
 \subsection{Installation d'OpenSSL}
 \begin{verbatim}
   (passerelle)# ./configure --prefix=/usr/local && make && make test && make install
@@ -1099,33 +1099,49 @@ du serveur, comme \textit{ESTABLISHED}:
 Cet état est en fait utilisé lors des échanges attendant une réponse.
 Cela nous donne donc la règle suivante:
 \begin{verbatim}
-(passerelle)# iptables -A INPUT -i eth0 -p udp -s 192.168.1.1 --sport 53 \
+  (passerelle)# iptables -A INPUT -i eth0 -p udp -s 192.168.1.1 --sport 53 \
      -m state --state ESTABLISHED -j ACCEPT
 \end{verbatim}
 
 On ajoute sur la chaîne INPUT le fait qu'en cas de connexion
-TCP sur le port ssh, il faille accepter le traffic:
+TCP sur le port 22 (SSH), il faille accepter le trafic :
 \begin{verbatim}
-(passerelle)# iptables -A INPUT -p tcp --dport ssh -j ACCEPT
+  (passerelle)# iptables -A INPUT -p tcp --dport ssh -j ACCEPT
+\end{verbatim}
+La règle précédente est valable quand \textit{passerelle} est serveur SSH.
+Si \textit{passerelle} est client SSH, alors il faut accepter
+un trafic entrant venant d'un serveur SSH externe :
+\begin{verbatim}
+  (passerelle)# iptables -A INPUT -p tcp --sport ssh -j ACCEPT
 \end{verbatim}
 
 D'une façon similaire, on autorise les accès HTTP et HTTPS:
 \begin{verbatim}
-(passerelle)# iptables -A INPUT -p tcp --dport 80 -j ACCEPT
-(passerelle)# iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+  (passerelle)# iptables -A INPUT -p tcp -m multiport --dports 80,443 -j ACCEPT
+\end{verbatim}
+On accepte également les réponses de serveurs HTTP et HTTPS.
+\begin{verbatim}
+  (passerelle)# iptables -A INPUT -p tcp --sport 80 -m state --state ESTABLISHED -j ACCEPT
+  (passerelle)# iptables -A INPUT -p tcp --sport 443 -m state --state ESTABLISHED -j ACCEPT
 \end{verbatim}
 
 Enfin, pour les services emails (dans l'ordre IMAP, IMAPS,
-SMTP (client/serveur) SMTPS)
+SMTP (atteint depuis un client / atteint depuis un serveur), SMTPS)
 \begin{verbatim}
-(passerelle)# for i in 143 993 587 110 465; do \
-iptables -A INPUT -p tcp --dport $i -j ACCEPT \
-done
+  (passerelle)# for i in 143 993 587 25 465; do \
+    iptables -A INPUT -p tcp --dport $i -j ACCEPT \
+    done
+\end{verbatim}
+
+Si notre serveur SMTP interroge un autre serveur SMTP et attend une réponse, 
+il est intéressant d'autoriser son trafic.
+\begin{verbatim}
+  (passerelle)# iptables -A INPUT -p tcp --sport 25 -j ACCEPT
 \end{verbatim}
 
 On notera cependant que l'on ne filtre ici le traffic que sur
 les ports, et pas sur le contenu. Rien n'empêche de faire passer
-du traffic autre que du traffic SMTP sur le port SMTP par exemple.
+du trafic autre que du traffic SMTP sur le port SMTP par exemple.
 
 % < cat appendix.tex
 
