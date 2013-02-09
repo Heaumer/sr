@@ -525,9 +525,94 @@ le fichier de configuration \textit{/etc/openvpn/server.conf}
 
 Le serveur sera donc automatiquement démarré avec les bons paramètres.
 
-\subsubsection{Pontage}
+\subsubsection{Pont Ethernet}
 
-TODO
+Un pont réseau travaille au niveau 2 de la couche OSI et permet de combiner
+une interface Ethernet avec une (ou plusieurs) interface(s) virtuelle(s) TAP (également de niveau 2).
+Ainsi on peut relier les machines du réseau virtuel créé par OpenVPN avec celles 
+connectées au réseau local (ici 192.168.2.0/24). 
+
+On souhaite mettre en place le pont côté serveur (machine \textit{passerelle})
+afin que les clients du VPN soient capables de se connecter au pont. Ils recevront
+une adresse du réseau local grâce au serveur OpenVPN qui leur affectera une adresse
+IP de son \textit{pool} d'adresses.
+
+On commence par installer \textit{bridge-utils}.
+\begin{verbatim}
+  (passerelle)# sudo apt-get install bridge-utils
+\end{verbatim}
+
+On prend soin de déplacer les scripts \textit{bridge-utils} et \textit{bridge-stop}
+dans \textit{/etc/openvpn}. Et on modifie \textit{bridge-start} ainsi :
+\begin{verbatim}
+  br="br0"
+  tap="tap0"
+  eth="eth1"
+  eth_ip="192.168.2.1"
+  eth_netmask="255.255.255.0"
+  eth_broadcast="192.168.2.255"
+\end{verbatim}
+
+On lance ensuite le script : les interfaces \textit{tap0} et \textit{br0} sont ajoutées.
+Puis, il faut modifier le script \textit{/etc/openvpn/server.conf} pour qu'il tienne 
+compte du pont Ethernet.
+Ainsi on remplace
+\begin{verbatim}
+  dev tun
+\end{verbatim}
+par
+\begin{verbatim}
+  dev tap0
+\end{verbatim}
+
+Et on remplace
+\begin{verbatim}
+  server 10.8.0.0 255.255.255.0
+\end{verbatim}
+par
+\begin{verbatim}
+  server-bridge 192.168.2.1 255.255.255.0 192.168.2.128 192.168.2.254
+\end{verbatim}
+
+Le \textit{pool} des adresses IP distribuées est alors la plage 192.168.2.128 - 192.168.2.254.
+
+Depuis les derniers noyaux, les trames Ethernet contenant des paquets IP qui passent
+par un pont sont soumises aux règles \textit{iptables}.
+Afin d'autoriser le trafic du tunnel, on applique donc :
+\begin{verbatim}
+  (passerelle)# iptables -A INPUT -i tap0 -j ACCEPT
+  (passerelle)# iptables -A INPUT -i br0 -j ACCEPT
+  (passerelle)# iptables -A FORWARD -i br0 -j ACCEPT
+\end{verbatim}
+Note : l'\textit{ip\_forwarding} est déjà activé.
+
+Avant de démarrer le service \textit{openvpn}, il faut démarrer \textit{bridge-start}.
+Et après avoir stoppé \textit{openvpn}, il faut lancer \textit{bridge-stop}.
+
+Côté client, on remplace
+\begin{verbatim}
+  dev tun
+\end{verbatim}
+par
+\begin{verbatim}
+  dev tap
+\end{verbatim}
+
+Par défaut, un noyau \textit{bsd} ne prend pas en charge les interfaces Ethernel virtuelles (\textit{tap}).
+Il faut donc charger le module :
+\begin{verbatim}
+  (client-bsd)# kldload if_tap
+\end{verbatim}
+
+Pour rendre cela persistant, on ajoute dans \textit{/boot/loader.conf} :
+\begin{verbatim}
+  if_tap_load="YES"
+\end{verbatim}
+
+On démarre le client \textit{openvpn} et on vérifie qu'on réussit rien à atteindre
+l'interface \textit{eth1} de \textit{passerelle}. Le pont est correctement établi.
+On ne triche pas puisque dans des manipulations précédentes, l'interface \textit{em1}
+de \textit{client-bsd} qui était connectée au réseau 192.168.2.0/24 a été désactivée.
 
 \section{Configuration d'un serveur web et d'OpenSSL}
 \subsection{Installation d'OpenSSL}
