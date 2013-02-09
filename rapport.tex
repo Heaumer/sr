@@ -178,15 +178,7 @@ On vérifie les logs sur la passerelle:
   (passerelle)# tail -f /var/log/kernel.log
 \end{verbatim}
 
-nmap ? Faire peut-être une partie "outils d'attaque et... d'audit"
-où on explique l'utilisation de nmap, metasploit, vas (TP de demain)
-et en quoi ils nous aident à sécu notre propre réseau.
-
 \section{Mise à disposition d'un accès distant sur la machine et sécurisation}
-Telnet, SSH, VPN
-Expliquer comment mettre en place TCP Wrapper avec Telnet mais pas sécurisé.
-essai ssh avec mitm? (normalement il affiche un message du genre
-"SOMEONE MAY BE ON THE CABLE!")
 
 \subsection{Serveur Telnet et attaques de \textit{sniffing}}
 
@@ -252,6 +244,15 @@ Dans le menu \textit{Mitm}, on sélectionne donc \textit{ARP Poisoning}.
 
 \end{enumerate}
 
+Depuis \textit{client-bsd}, on remarque que la table ARP a été empoisonnée : 
+\textit{passerelle} et \textit{backtrack} ont la même adresse MAC.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.4]{MAC2.PNG}
+	\caption{\label{arp} Table ARP de \textit{client-bsd}}
+\end{figure}
+
 La machine \textit{client-bsd} se connecte avec \textit{telnet}.
 
 \begin{figure}[!ht]
@@ -271,8 +272,8 @@ Et on constate qu'il est extrêmement facile d'obtenir le couple \textit{login/p
 On ne veut donc pas proposer un service d'accès à distance non sécurisé, c'est-à-dire
 basé sur des communications transmises en clair sur le réseau. 
 
- 
 \subsection{Serveur SSH  et optimisations}
+
 SSH (Secure SHell) joue un rôle similaire à telnet, mais contrairement à ce
 dernier, il intègre des mécanismes de sécurité, comme le chiffrement des
 communications.
@@ -295,27 +296,27 @@ Afin d'éviter d'avoir à entrer le mot de passe à chaque connexion, on peut
 utiliser un système à base de clefs. On génère un couple clef privée/publique
 de type RSA sur le client:
 \begin{verbatim}
-(client-bsd)$ ssh-keygen -t rsa
-Generating public/private rsa key pair.
-Enter file in which to save the key (/home/cssr/.ssh/id_rsa): 
-Enter passphrase (empty for no passphrase): 
-Enter same passphrase again: 
-Your identification has been saved in /home/cssr/.ssh/id_rsa
-Your public key has been saved in /home/cssr/.ssh/id_rsa
-The key fingerprint is:
-f4:3e:54:9f:df:eb:72:cc:7a:da:29:a5:79:58:0c:44 cssr@client-bsd
-The key's randomart image is:
-+--[ RSA 2048]----+
-|            .E   |
-|             .   |
-|        .   o    |
-|       . . . o . |
-|        S o   =  |
-|         o     =.|
-|          o   O o|
-|           . *.*o|
-|             oX= |
-+-----------------+
+  (client-bsd)$ ssh-keygen -t rsa
+  Generating public/private rsa key pair.
+  Enter file in which to save the key (/home/cssr/.ssh/id_rsa): 
+  Enter passphrase (empty for no passphrase): 
+  Enter same passphrase again: 
+  Your identification has been saved in /home/cssr/.ssh/id_rsa
+  Your public key has been saved in /home/cssr/.ssh/id_rsa
+  The key fingerprint is:
+  f4:3e:54:9f:df:eb:72:cc:7a:da:29:a5:79:58:0c:44 cssr@client-bsd
+  The key's randomart image is:
+  +--[ RSA 2048]----+
+  |            .E   |
+  |             .   |
+  |        .   o    |
+  |       . . . o . |
+  |        S o   =  |
+  |         o     =.|
+  |          o   O o|
+  |           . *.*o|
+  |             oX= |
+  +-----------------+
 \end{verbatim}
 
 Deux fichiers sont alors générés :
@@ -625,7 +626,8 @@ de \textit{client-bsd} qui était connectée au réseau 192.168.2.0/24 a été d
 \end{verbatim}
 
 \subsection{Installation d'Apache2}
-Après avoir récupéré les sources sur le site (et vérifié le hash du fichier), on configure
+Après avoir récupéré les sources sur le site (et vérifié le hash du fichier), on 
+installe et configure
 Apache avec le support d'OpenSSL
 \begin{verbatim}
   (passerelle)# ./configure --enable-ssl --with-ssl=/usr/local/openssl --prefix=/usr/local/apache2
@@ -644,37 +646,23 @@ On génère dans l'ordre:
 	\item un certificat $X509$.
 \end{enumerate}
 
+\begin{verbatim}
+  (passerelle)# openssl version
+  OpenSSL 0.9.8x 10 May 2012
+  
+  (passerelle)# openssl genrsa -out ca.key 1024 # Génère la clé privée
+  
+  (passerelle)# openssl req -new -key ca.key -out ca.csr # Génère un CSR
+  # Les champs X509 sont demandés.
+
+  (passerelle)# openssl x509 -req -days 365 -in ca.csr -signkey ca.key -out ca.crt
+  # Signature du certificat généré.
+  
+  (passerelle)# cp ca.* /etc/ssl/
+\end{verbatim}
+
 Enfin, on copie (arbitrairement) ces fichiers dans
 \textit{/usr/local/apache2/conf/}:
-\begin{verbatim}
-(passerelle)# openssl version
-OpenSSL 0.9.8x 10 May 2012
-(passerelle)# openssl req -new -key ca.key -out ca.csr
-You are about to be asked to enter information that will be incorporated
-into your certificate request.
-What you are about to enter is what is called a Distinguished Name or a DN.
-There are quite a few fields but you can leave some blank
-For some fields there will be a default value,
-If you enter '.', the field will be left blank.
------
-Country Name (2 letter code) [AU]:FR
-State or Province Name (full name) [Some-State]:France
-Locality Name (eg, city) []:Nice
-Organization Name (eg, company) [Internet Widgits Pty Ltd]:CSSR Ltd
-Organizational Unit Name (eg, section) []:
-Common Name (e.g. server FQDN or YOUR name) []:
-Email Address []:
-
-Please enter the following 'extra' attributes
-to be sent with your certificate request
-A challenge password []:A challenge password
-An optional company name []:
-(passerelle)# openssl x509 -req -days 365 -in ca.csr -signkey ca.key -out ca.crt
-Signature ok
-subject=/C=FR/ST=France/L=Nice/O=CSSR Ltd
-Getting Private key
-(passerelle)# cp ca.* /etc/ssl/
-\end{verbatim}
 
 Le certificat pourra être utilisé par les serveurs HTTPS, SMTP, IMAPS, etc.
 
@@ -711,6 +699,14 @@ TransferLog "/usr/local/apache2/logs/access_log"
 \end{verbatim}
 
 \subsection{Tests}
+
+Une page de formulaire \textit{index.html} est fournie et placée dans
+\textit{/usr/local/apache2/htdocs/}. On la place aussi dans
+\textit{/export/wwws} afin que le serveur HTTPS publie
+cette page sécurisé avec le support de \textit{SSL/TLS}.
+On dispose également d'un script CGI \textit{scriptpass.pl} que l'on place dans
+\textit{/usr/local/apache2/cgi-bin/}.
+
 Le script d'authentification fourni peut être étendu pour
 fournir une interface de création de compte sur la passerelle.
 On peut ainsi créer automatiquement un compte UNIX, un espace
@@ -719,10 +715,17 @@ d'envoyer un email à l'administrateur de la machine avant la
 création du compte, pour que celui-ci s'assure que l'utilisateur
 a bien de bonnes raisons de demander un accès.
 
-Dans tout les cas, une attaque sur le serveur sécurisé avec
-ettercap fonctionne comme les attaques précèdentes (ARP spoofing)
-au détail près qu'ettercap génère un faux certificat de façon
+Avec \textit{ettercap}, on tente avec succès d'interception la connexion HTTP
+(non sécurisée). Puis, on mène une attaque sur le serveur sécurisé avec
+\textit{ettercap} à nouveau. L'attaque fonctionne comme l'attaque précédente
+(ARP spoofing) au détail près qu'\textit{ettercap} génère un faux certificat de façon
 à récupérer les données d'authentification.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.6]{HTTPHTTPS.png}
+	\caption{\label{attaques} Interception des données des connexions HTTP et HTTPS}
+\end{figure}
 
 Un utilisateur averti risque de le remarquer, à moins que cela
 soit sa première connexion sur le site. En effet, le certificat
