@@ -1144,6 +1144,21 @@ On permet aussi la réception de paquets ICMP.
   (passerelle)# iptables -A INPUT -p icmp -j ACCEPT
 \end{verbatim}
 
+Pour l'audit de notre système, on ajoute la règle suivante :
+\begin{verbatim}
+  (passerelle)# iptables -A INPUT -p tcp -j LOG --log-prefix "Paquets TCP INPUT"
+\end{verbatim}
+
+Enfin, concernant le VPN :
+\begin{verbatim}
+  (passerelle)# iptables -A INPUT -p udp -s 192.168.2.2 -d 192.168.2.1 --dport 1194 -j ACCEPT
+  (passerelle)# iptables -A INPUT -i tun -j ACCEPT
+  # Après changement de la topologie et mise en place du pontage
+  (passerelle)# iptables -A INPUT -p udp -s 192.168.2.2 -d 192.168.2.1 --dport 1194 -j ACCEPT
+  (passerelle)# iptables -A INPUT -i tap0 -j ACCEPT
+  (passerelle)# iptables -A INPUT -i br0 -j ACCEPT
+\end{verbatim}
+
 On notera cependant que l'on ne filtre ici le traffic que sur
 les ports, et pas sur le contenu. Rien n'empêche de faire passer
 du trafic autre que du traffic SMTP sur le port SMTP par exemple.
