@@ -617,7 +617,7 @@ de \textit{client-bsd} qui était connectée au réseau 192.168.2.0/24 a été d
 \section{Configuration d'un serveur web et d'OpenSSL}
 \subsection{Installation d'OpenSSL}
 \begin{verbatim}
-  (passerelle)# ./configure --prefix=/usr/local && make && make install
+  (passerelle)# ./configure --prefix=/usr/local && make && make test && make install
   (passerelle)# cat >> /etc/ld.so.conf
   /usr/local/openssl/lib
   ^D
@@ -628,7 +628,8 @@ de \textit{client-bsd} qui était connectée au réseau 192.168.2.0/24 a été d
 Après avoir récupéré les sources sur le site (et vérifié le hash du fichier), on configure
 Apache avec le support d'OpenSSL
 \begin{verbatim}
-  (passerelle)# ./configure --option-du-chemin-ssl=/usr/local/openssl --prefix=/usr/local/apache2
+  (passerelle)# ./configure --enable-ssl --with-ssl=/usr/local/openssl --prefix=/usr/local/apache2
+  (passerelle)# make && make install
   (passerelle)# /usr/local/bin/apache2/bin/apachectl start
   (passerelle)# nc passerelle 80
   GET /
@@ -678,7 +679,7 @@ Getting Private key
 Le certificat pourra être utilisé par les serveurs HTTPS, SMTP, IMAPS, etc.
 
 \subsection{Passage à HTTPS}
-On inclu le fichier \textit{extra/httpd-ssl.conf} depuis le
+On inclut le fichier \textit{extra/httpd-ssl.conf} depuis le
 \textit{httpd.conf}:
 \begin{verbatim}
 Include conf/extra/httpd-ssl.conf
@@ -692,10 +693,11 @@ SSLCertificateKeyFile "/usr/local/apache2/conf/ca.key"
 \end{verbatim}
 
 Enfin, on règle les paramètres pour le domaine virtuel dans lequel
-tourne la partie HTTPS:
+tourne la partie HTTPS. On veut notamment que le serveur sécurisé
+publie les pages de \textit{/export/wwws}
 \begin{verbatim}
 DocumentRoot "/export/wwws/"
-ServerName www.example.com:443
+ServerName passerelle.cs.sr:443
 ServerAdmin you@example.com
 ErrorLog "/usr/local/apache2/logs/error_log"
 TransferLog "/usr/local/apache2/logs/access_log"
