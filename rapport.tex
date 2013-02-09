@@ -1079,7 +1079,7 @@ traffic entrant, et autorise tout le traffic sortant/forwardé:
 (passerelle)# iptables -P FORWARD ACCEPT
 \end{verbatim}
 
-On autorise le traffic entrant venant de localhost:
+On autorise le trafic entrant venant de localhost:
 \begin{verbatim}
 (passerelle)# iptables -A INPUT -s 127.0.0.1 -j ACCEPT
 \end{verbatim}
@@ -1137,6 +1137,11 @@ Si notre serveur SMTP interroge un autre serveur SMTP et attend une réponse,
 il est intéressant d'autoriser son trafic.
 \begin{verbatim}
   (passerelle)# iptables -A INPUT -p tcp --sport 25 -j ACCEPT
+\end{verbatim}
+
+On permet aussi la réception de paquets ICMP.
+\begin{verbatim}
+  (passerelle)# iptables -A INPUT -p icmp -j ACCEPT
 \end{verbatim}
 
 On notera cependant que l'on ne filtre ici le traffic que sur
