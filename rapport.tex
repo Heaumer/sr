@@ -491,7 +491,39 @@ On démarre le serveur et le client :
   (client-bsd)# openvpn /easy-rsa/2.0/client.conf
 \end{verbatim}
 
-Démarrage automatique du serveur /etc/init.d ...
+\subsubsection{Démarrage automatique d'un service}
+
+Au démarrage de la machine Linux, le processus \textit{init} 
+est chargé de démarrer certains services selon le niveau de démarrage.
+\textit{init} utilise des scripts \textit{shell} qui activent ou désactivent
+les services. Ainsi, à chaque niveau de démarrage, \textit{init} exécute
+les scripts du niveau de démarrage courant.
+
+Les niveaux 2 à 5 correspondent au mode multi-utilisateurs. C'est le mode
+par défaut sur les distributions Linux. Cependant, une distribution 
+\textit{Debian} utilise le niveau 2 par défaut alors qu'une distribution
+\textit{OpenSuse} utilise le niveau 5 par défaut.
+
+Tous les scripts de démarrage sont rangés dans \textit{/etc/init.d} et
+des liens y font référence depuis les répertoires de niveau de démarrage.
+
+Ainsi, on s'assure que des liens vers le script d'OpenVPN \textit{/etc/init.d/openvpn} 
+sont bien présents dans les répertoires \textit{rc2.d}, \textit{rc3.d}, \textit{rc4.d} et
+\textit{rc5.d} du répertoire \textit{/etc}.
+Les commentaires du script \textit{/etc/init.d/openvpn} peuvent nous conforter dans
+cette idée.
+\begin{verbatim}
+# Default-Start:     2 3 4 5
+\end{verbatim}
+
+Le script \textit{/etc/init.d/openvpn} peut être configuré 
+avec le fichier \textit{/etc/default/openvpn} et avec des fichiers
+de configuration placés dans \textit{/etc/openvpn} ayant l'extension \textit{conf}.
+On n'a donc pas besoin de préciser dans \textit{/etc/default/openvpn} les
+arguments de la commande \textit{openvpn} puisque le script lira 
+le fichier de configuration \textit{/etc/openvpn/server.conf}
+
+Le serveur sera donc automatiquement démarré avec les bons paramètres.
 
 \subsubsection{Pontage}
 
