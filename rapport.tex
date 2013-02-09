@@ -245,7 +245,9 @@ Dans le menu \textit{Mitm}, on sélectionne donc \textit{ARP Poisoning}.
 \end{enumerate}
 
 Depuis \textit{client-bsd}, on remarque que la table ARP a été empoisonnée : 
-\textit{passerelle} et \textit{backtrack} ont la même adresse MAC.
+\textit{passerelle} a reçu l'adresse MAC de \textit{backtrack}.
+Ainsi, les trames que \textit{client-bsd} souhaiterait envoyer à \textit{passerelle}
+seront envoyées à \textit{backtrack}
 
 \begin{figure}[!ht]
 	\centering
