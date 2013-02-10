@@ -519,12 +519,10 @@ cette idée.
 # Default-Start:     2 3 4 5
 \end{verbatim}
 
-Le script \textit{/etc/init.d/openvpn} peut être configuré 
-avec le fichier \textit{/etc/default/openvpn} et avec des fichiers
-de configuration placés dans \textit{/etc/openvpn} ayant l'extension \textit{conf}.
-On n'a donc pas besoin de préciser dans \textit{/etc/default/openvpn} les
-arguments de la commande \textit{openvpn} puisque le script lira 
-le fichier de configuration \textit{/etc/openvpn/server.conf}
+Le répertoire \textit{/etc/openvpn} contient un fichier
+\textit{.conf} par VPN. \textit{/etc/default/openvpn}
+permet de configurer le script de démmarage \textit{/etc/init.d/openvpn},
+et notamment de démarrer automatiquement des VPNs.
 
 Le serveur sera donc automatiquement démarré avec les bons paramètres.
 
@@ -1070,6 +1068,39 @@ pour l'utilisateur \textit{alice} mais aussi pour l'utilisateur \textit{cssr}.
 \end{figure}
 
 \section{Outils d'audit : OpenVAS \& Metasploit}
+OpenVAS (Open Vulnerability Assessment Scanner} est un scanner de vulnérabilité.
+Il en cherche au niveau des services réseaux fournis, mais il est aussi possible
+de lui donner des informations pour avoir un accès distant à la cible (eg. credentials
+SSH), et donc chercher des vulnérabilités « locales » à la machine attaquée.
+
+Metasploit joue un rôle similaire, mais les deux ne fonctionnent pas avec la même
+base de vulnérabilités.
+
+Avant toute utilisation, il est bon de mettre à jour ces bases, et de lancer
+dans le bon ordre les différents services composants ces logiciels.
+
+L'utilisation d'OpenVAS peut se résummer à:
+\begin{enumerate}
+	\item sélectionner au moins une machine;
+	\item éventuellement, renseigner des credentials pour SSH, Telnet, etc.;
+	\item lancer le scan;
+	\item attendre (les scans sont \textbf{longs});
+	\item lire le compte-rendu de l'outil.
+\end{enumerate}
+
+Pour Metasploit,
+\begin{enumerate}
+	\item sélectionner une machine;
+	\item la scanner (Nmap) pour vérifier la version de l'OS, des services, etc.;
+	\item lire la liste des attaques proposées par Metasploit pour la cible;
+	\item essayer de trouver dans celles-ci une qui marche;
+\end{enumerate}
+
+En pratique, les distributions étaient trop « modernes » pour que l'on y trouve
+des vulnérabilités. Néamoins, dans le cas d'un réseau quelconque, notamment réseau
+d'entreprise, il est fort à parier que s'y trouve de vielles versions de
+windows/linux pas mise-à-jour, en raison du coût (temps, argent, risque de partir
+sur une solution qui marche moins bien que celle déjà présente, etc.) trop élevé.
 
 \section{Politique de sécurité : Flux autorisés}
 
