@@ -1067,7 +1067,8 @@ pour l'utilisateur \textit{alice} mais aussi pour l'utilisateur \textit{cssr}.
 	\caption{\label{pgp} L'utilisateur \textit{cssr} reçoit un message d'Alice qui avait été signé et chiffré}
 \end{figure}
 
-\section{Outils d'audit : OpenVAS \& Metasploit}
+\section{Outils d'audit}
+\subsection{OpenVAS \& Metasploit}
 OpenVAS (Open Vulnerability Assessment Scanner} est un scanner de vulnérabilité.
 Il en cherche au niveau des services réseaux fournis, mais il est aussi possible
 de lui donner des informations pour avoir un accès distant à la cible (eg. credentials
@@ -1101,6 +1102,42 @@ des vulnérabilités. Néamoins, dans le cas d'un réseau quelconque, notamment 
 d'entreprise, il est fort à parier que s'y trouve de vielles versions de
 windows/linux pas mise-à-jour, en raison du coût (temps, argent, risque de partir
 sur une solution qui marche moins bien que celle déjà présente, etc.) trop élevé.
+
+\subsection{Nmap}
+NMap est un scanner de machines. Plusieurs solutions techniques (eg. TCP SYN)
+lui permettent de trouver des services réseaux accessibles, les versions de
+ces derniers, la version de l'OS, etc.
+
+Voici un exemple de trace sur une passerelle réseau sous FreeBSD:
+\begin{verbatim}
+(host)# nmap -A 192.168.98.2
+
+Starting Nmap 6.25 ( http://nmap.org ) at 2013-02-06 04:24 CET
+Nmap scan report for 192.168.98.2
+Host is up (0.0011s latency).
+Not shown: 998 closed ports
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 5.8p2_hpn13v11 (FreeBSD 20110503; protocol 2.0)
+| ssh-hostkey: 1024 ad:53:43:8e:1e:9a:25:59:ef:d7:16:99:d1:21:47:a0 (DSA)
+| 2048 ab:d7:19:4c:99:73:6e:f3:0b:ba:56:95:1e:67:92:6d (RSA)
+|_256 8a:e1:0c:ab:21:3e:14:4b:74:f4:95:0d:02:f0:21:d3 (ECDSA)
+23/tcp open  telnet  BSD-derived telnetd
+MAC Address: 00:0C:29:A7:72:B4 (VMware)
+Device type: general purpose
+Running: FreeBSD 7.X|8.X|9.X|10.X
+OS CPE: cpe:/o:freebsd:freebsd:7 cpe:/o:freebsd:freebsd:8 cpe:/o:freebsd:freebsd:9 cpe:/o:freebsd:freebsd:10
+OS details: FreeBSD 7.0-RELEASE-p1 - 10.0-CURRENT
+Network Distance: 1 hop
+Service Info: OS: FreeBSD; CPE: cpe:/o:freebsd:freebsd
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   1.10 ms 192.168.98.2
+
+OS and Service detection performed. Please report any incorrect results at http://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 9.31 seconds
+\end{verbatim}
+
 
 \section{Politique de sécurité : Flux autorisés}
 
