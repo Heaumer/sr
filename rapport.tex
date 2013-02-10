@@ -91,18 +91,43 @@
 
 \newpage
 
-\section{Scénario}
-Serveur « public » fournissant accès distant (VPN), compte email
-(postfix, dovecot, client email), espace web (apache).
-
-Encryption autant que faire ce peut.
-
-Logs.
-
-Outils d'audit.
-
 \section{Topologie}
+
+Les travaux pratiques sont réalisés dans un environnement virtualisé VMWare.
+Une telle infrastructure repose sur un serveur ESXi qui permet de faire tourner
+des machines virtuelles simultanément. 
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.4]{ESX.PNG}
+	\caption{\label{esx} Virtualisation}
+\end{figure}
+
+La connexion aux machines virtuelles se fait depuis un client \textit{vSphere}.
+Ce dernier se connecte à un \textit{vCenter}, c'est-à-dire un serveur
+spécialisé supervisant les hôtes ESXi et les différentes VMs associées.
+
+Dans notre cas, quatre machines virtuelles sont présentes dans l'infrastructure :
+\begin{itemize}
+\item \textit{le-serveur}, une machine faisant office de serveur DNS, serveur DHCP et
+passerelle ;
+\item \textit{passerelle}, une machine Linux (Ubuntu) ayant le rôle de passerelle ;
+\item \textit{client-bsd}, une machine BSD (FreeBSD) ;
+\item \textit{backtrack}, une machine Linux (BackTrack).
+\end{itemize}
+
+%\vspace{21\baselineskip}
+
+Voici la topologie réseau initiale :
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.6]{Topologie.PNG}
+	\caption{\label{topo} Topologie}
+\end{figure}
+
 \section{Mise en place d'une passerelle et accès à Internet}
+
 Une passerelle (gateway) est un homme du milieu reliant
 deux réseaux distincts. Dans le cas présent, la machine \textit{passerelle}
 doit faire communiquer les deux réseaux SLAN (192.168.1.0/24) et LAN Travaux 
@@ -363,6 +388,12 @@ Il peut-être intéressant d'y faire les réglages suivants:
 Alors que SSH permet l'accès sécurisé à une machine distante (le serveur SSH),
 un VPN (Virtual Private Network) permet d'accéder au serveur VPN et à son réseau local de façon sécurisée.
 
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.6]{VPN1.PNG}
+	\caption{\label{vpn1} Topologie}
+\end{figure}
+
 On désire établir un réseau virtuel d'adresse 10.0.0.0 entre le client \textit{client-bsd} 
 et le serveur \textit{passerelle}. 
 On installe le paquet \textit{openvpn} sur chaque machine :
@@ -537,6 +568,12 @@ On souhaite mettre en place le pont côté serveur (machine \textit{passerelle})
 afin que les clients du VPN soient capables de se connecter au pont. Ils recevront
 une adresse du réseau local grâce au serveur OpenVPN qui leur affectera une adresse
 IP de son \textit{pool} d'adresses.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[scale=.6]{VPN2.PNG}
+	\caption{\label{vpn1} Topologie}
+\end{figure}
 
 On commence par installer \textit{bridge-utils}.
 \begin{verbatim}
@@ -1069,7 +1106,7 @@ pour l'utilisateur \textit{alice} mais aussi pour l'utilisateur \textit{cssr}.
 
 \section{Outils d'audit}
 \subsection{OpenVAS \& Metasploit}
-OpenVAS (Open Vulnerability Assessment Scanner} est un scanner de vulnérabilité.
+OpenVAS (Open Vulnerability Assessment Scanner) est un scanner de vulnérabilités.
 Il en cherche au niveau des services réseaux fournis, mais il est aussi possible
 de lui donner des informations pour avoir un accès distant à la cible (eg. credentials
 SSH), et donc chercher des vulnérabilités « locales » à la machine attaquée.
@@ -1080,7 +1117,7 @@ base de vulnérabilités.
 Avant toute utilisation, il est bon de mettre à jour ces bases, et de lancer
 dans le bon ordre les différents services composants ces logiciels.
 
-L'utilisation d'OpenVAS peut se résummer à:
+L'utilisation d'OpenVAS peut se résumer à :
 \begin{enumerate}
 	\item sélectionner au moins une machine;
 	\item éventuellement, renseigner des credentials pour SSH, Telnet, etc.;
@@ -1100,7 +1137,7 @@ Pour Metasploit,
 En pratique, les distributions étaient trop « modernes » pour que l'on y trouve
 des vulnérabilités. Néamoins, dans le cas d'un réseau quelconque, notamment réseau
 d'entreprise, il est fort à parier que s'y trouve de vielles versions de
-windows/linux pas mise-à-jour, en raison du coût (temps, argent, risque de partir
+windows/linux pas mises-à-jour, en raison du coût (temps, argent, risque de partir
 sur une solution qui marche moins bien que celle déjà présente, etc.) trop élevé.
 
 \subsection{Nmap}
@@ -1241,10 +1278,11 @@ du trafic autre que du trafic SMTP sur le port SMTP par exemple.
 \section{Configuration d'une passerelle réseau sous FreeBSD}
 Afin de voir les différences de configuration entre un Linux
 et une FreeBSD, on utilise ici une topologie plus simple, mais
-similaire à celle utilisée en cours.
+similaire à celle utilisée en TP.
 
-On utilise un VMware sous un système hôte Linux ($3.7.5-1$),
-faisant tourner deux machines virtuelles:
+On utilise ici le logiciel de virtualisation VMWare (et non la suite ESX/ESXi des TPs) 
+sur un système hôte Linux ($3.7.5-1$). Le logiciel de virtualisation fait tourner deux machines virtuelles
+:
 \begin{description}
 	\item[FreeBSD 9.1], passerelle, disposant de deux adaptateurs
 	réseaux:
@@ -1272,7 +1310,7 @@ de la passerelle sous Linux.
 \subsubsection{Interfaces réseaux}
 On commence par configurer l'interface NAT, en utilisant par
 exemple le serveur DHCP du switch virtuel. Ceci est normalement
-déjà effectué au démarrage (cf. \textit{/etc/rc.conf}):
+déjà effectué au démarrage (cf. \textit{/etc/rc.conf}) :
 \begin{verbatim}
 (passerelle)# dhclient em0
 DHCPREQUEST on em0 to 255.255.255.255 port 67
@@ -1283,8 +1321,8 @@ ifconfig_em0="DHCP"
 \end{verbatim}
 
 Puis on se connecte au réseau local, en utilisant ici une IP
-statique, et l'on fait en sorte que la connection soit effective
-au démmarage de la machine:
+statique, et l'on fait en sorte que la connexion soit effective
+au démarrage de la machine :
 \begin{verbatim}
 (passerelle)# ifconfig em1 192.168.98.2
 (passerelle)# cat >> /etc/rc.conf
@@ -1293,8 +1331,8 @@ ifconfig_em1="inet 192.168.98.2 netmask 255.255.255.0"
 \end{verbatim}
 
 On s'assure que l'on peut bien communiquer avec le système hôte
-($x.x.x.1$) via les deux interfaces, et que l'on peut accéder aux
-Internets:
+($x.x.x.1$) via les deux interfaces, et que l'on peut accéder à
+Internet :
 \begin{verbatim}
 (passerelle)# for i in 192.168.98.1 192.168.237.1 google.fr; do ping -c1 -q $i; done
 PING 192.168.98.1 (192.168.98.1): 56 data bytes
@@ -1316,7 +1354,7 @@ round-trip min/avg/max/stddev = 50.611/50.611/50.611/0.000 ms
 
 \subsubsection{IP forwarding}
 On active l'IP forwarding, manuellement, puis automatiquement
-au démarrage:
+au démarrage :
 
 % http://docs.freebsd.org/doc/4.6.2-RELEASE/usr/share/doc/en_US.ISO8859-1/books/ppp-primer/x237.html
 \begin{verbatim}
@@ -1329,7 +1367,7 @@ gateway_enable="YES"
 
 \subsubsection{NAT}
 Par défaut, le noyau de FreeBSD n'est pas configuré pour faire
-du NAT; il recompiler un pépin en lui ajoutant l'option \textit{IPDIVERT}:
+du NAT; il recompiler un pépin en lui ajoutant l'option \textit{IPDIVERT} :
 \begin{verbatim}
 (passerelle)# cd /sys/i386/conf/
 (passerelle)# cp GENERIC LOCAL
@@ -1345,8 +1383,8 @@ kldxref /boot/kernel
 \end{verbatim}
 
 % http://www.freebsd.org/doc/en_US.ISO8859-1/books/handbook/network-natd.html
-Le NAT en lui-même est géré par le démon natd, qu'il faut lancer
-au démmarage, sur l'interface de sortie (em$0$):
+Le NAT en lui-même est géré par le démon \textit{natd}, qu'il faut lancer
+au démarrage, sur l'interface de sortie (em$0$) :
 \begin{verbatim}
 (passerelle)# cat >> /etc/rc.conf
 natd_enable="YES"
@@ -1355,7 +1393,7 @@ natd_interface="em0"
 \end{verbatim}
 
 Enfin, il faut dire au bootloader de charger les modules nécessaire
-pour l'IP-diverting:
+pour l'\textit{IP-diverting} :
 \begin{verbatim}
 (passerelle)# cat >> /boot/loader.conf
 ipdivert_load="YES"
@@ -1363,7 +1401,7 @@ ipdivert_load="YES"
 \end{verbatim}
 
 \subsubsection{Firewall}
-On choisit arbitrairement ipfw (deux autres choix possibles: pf et ipf),
+On choisit arbitrairement \textit{ipfw} (deux autres choix possibles : \textit{pf} et \textit{ipf}),
 que l'on active au démmarage:
 \begin{verbatim}
 (passerelle)# cat >> /etc/rc.conf
@@ -1372,8 +1410,8 @@ firewall_type="OPEN"
 firewall_script="/etc/fw.sh"
 \end{verbatim}
 
-Le script fw.sh configure la table NAT et le diverting pour l'interface
-\textit{em0}, tout en laissant passer tout le traffic entrant/sortant:
+Le script \textit{fw.sh} configure la table NAT et le \textit{diverting} pour l'interface
+\textit{em0}, tout en laissant passer tout le trafic entrant/sortant :
 \begin{verbatim}
 (passerelle)# cat /etc/fw.sh 
 #!/bin/sh
@@ -1383,8 +1421,8 @@ ipfw nat 1 config if em0
 ipfw add allow ip from any to any
 \end{verbatim}
 
-Puis on indique au bootloader de charger les bons modules pour que
-le pare-feu soit chargé, fonctionne avec le NAT, et soit laxiste:
+Puis on indique au \textit{bootloader} de charger les bons modules pour que
+le pare-feu soit chargé, fonctionne avec le NAT, et soit laxiste :
 \begin{verbatim}
 (passerelle)# cat >> /boot/loader.conf
 ipfw_load="YES"
@@ -1392,14 +1430,14 @@ ipfw_nat_load="YES"
 net.inet.ip.fw.default_to_accept="1"
 \end{verbatim}
 
-On n'oublie pas de redémarrer pour booter sur le nouveau pépin:
+On n'oublie pas de redémarrer pour booter sur le nouveau pépin :
 \begin{verbatim}
 (passerelle)# reboot
 \end{verbatim}
 
 \subsubsection{Syslogd}
-Normalement, syslogd est activé par défaut. On s'assure que c'est
-bien le cas, et qu'il fonctionne effectivement:
+Normalement, \textit{syslogd} est activé par défaut. On s'assure que c'est
+bien le cas, et qu'il fonctionne effectivement :
 \begin{verbatim}
 (passerelle)# ps aux| grep sysl
 root  1140  0.0  0.6  9504 1504 ??  Ss    3:54AM  0:00.02 /usr/sbin/syslogd -s
@@ -1414,9 +1452,9 @@ Feb  6 03:54:31 passerelle su: cssr to root on /dev/pts/0
 
 \subsection{Configuration du client}
 On configure l'\og interface \fg\ réseau avec une IP statique,
-on ajoute une route par défaut pour faire passer le traffic par
+on ajoute une route par défaut pour faire passer le trafic par
 la passerelle, et on s'assure que l'on peut communiquer avec
-l'extérieur:
+l'extérieur :
 \begin{figure}[!ht]
 	\centering
 	\includegraphics[scale=.5]{ipconfig.png}
@@ -1426,11 +1464,11 @@ l'extérieur:
 Par manque de temps, tous les services vus en cours n'ont pas été
 testés sous FreeBSD. Néamoins, pour ceux qui l'ont été,
 la configuration est à quelques détails près la même dans
-les deux cas. Seule la gestion du routage/firewall change vraiment,
-puisque les logiciels utilisés sont dans les deux cas identiques.
+les deux cas puisque les logiciels utilisés sont dans les deux cas identiques. 
+Seule la gestion du routage/firewall change vraiment.
 Cette section est donc volontairement vide, pour éviter les doublons
 avec le reste de ce document.
 
 On notera par exemple que pour postfix, il est nécessaire de
-désactiver sendmail pour éviter qu'ils ne se tappent dessus.
+désactiver \textit{sendmail} pour éviter qu'ils ne se \og tapent \fg dessus.
 \end{document}
